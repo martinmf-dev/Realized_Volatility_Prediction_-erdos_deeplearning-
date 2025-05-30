@@ -1,0 +1,2 @@
+This folder is a place holder for storing raw data imported from kaggle. 
+All file other than this explanation file should be ignored by git. 

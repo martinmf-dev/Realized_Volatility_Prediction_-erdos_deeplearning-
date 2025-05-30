@@ -1,0 +1,2 @@
+This folder is a place holder for storing data generated through the raw data. 
+All file other than this explanation file should be ignored by git. 

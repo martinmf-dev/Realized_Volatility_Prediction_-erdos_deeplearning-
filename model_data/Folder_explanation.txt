@@ -1,0 +1,2 @@
+This folder is for storing data in process of creating models, for example, trained weights. 
+All data in this folder should not directly reveal the raw data. 
