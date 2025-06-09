@@ -2,6 +2,7 @@
 ##Exclude all files in raw_data and processed_data
 raw_data/*
 processed_data/*
+.ipynb_checkpoints
 
 #Exception rules
 ##Keep Folder_explanation.txt files in raw_data and processed_data
