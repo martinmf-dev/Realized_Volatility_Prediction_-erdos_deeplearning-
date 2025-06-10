@@ -1,3 +1,5 @@
+#This file is based on work done in https://www.kaggle.com/competitions/optiver-realized-volatility-prediction/discussion/274970. 
+
 import glob
 
 import numpy as np
@@ -29,6 +31,7 @@ def calc_prices(r):
 def reconstruct_time_id_order(str_path):
     """
     A function that takes the path to book_train.parquet and return a list of time id in recovered order. The function is based on work done by https://www.kaggle.com/competitions/optiver-realized-volatility-prediction/discussion/274970. 
+    
     :param str_path: The path to book_train.parquet. 
     :return: A list of time id in recover order. 
     """

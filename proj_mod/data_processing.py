@@ -7,6 +7,7 @@ def book_for_stock(str_file_path,stock_id,time_id,create_para=True):
     """
     A function that returns a pandas dataframe containing the book data of a stock specified in str_file_path with certain time_id. 
     The function defaulted to create the wap and log return of wap, but this can be turned off by setting create_para to False. 
+    
     :param str_file_path: A str of the path to the file of book data (parquet). 
     :param stock_id: The chosen stock_id. 
     :param time_id: An int that indicates the interested time_id. 
@@ -30,6 +31,7 @@ def book_for_stock(str_file_path,stock_id,time_id,create_para=True):
 def trade_for_stock(str_file_path,stock_id,time_id):
     """
     A function that returns a pandas dataframe containing the trade data of a stock at a chosen time_id. 
+    
     :param str_file_path: A str of the path to the file of trade data (parquet). 
     :param stock_id: The chosen stock_id. 
     :param time_id: An int that indicated the interested time_id. 
@@ -46,6 +48,7 @@ def trade_for_stock(str_file_path,stock_id,time_id):
 def realized_vol(df_in,return_row_id=True): 
     """
     A function that returns the realized volatility based on the log return series input (for instance book["log_return"] where is book is a pandas dataframe containing book data for a stock and time id). 
+    
     :param df_in: dataframe containing log return data (with "log_return" column). 
     :param return_row_id: Decides if the return value is a pair of form (Realized volatility,row_id) or only Realized volatility, defaulted to be True. 
     :return: return a value or a pair depending on the choice of return_row_id. 
@@ -64,10 +67,11 @@ def realized_vol(df_in,return_row_id=True):
 def time_cross_val_split(list_time,n_split=4,percent_val_size=10): 
     """
     A function that take in a list of time id and return a time series split for cross validation, this function is written due to issue with sklearn.model_selection.TimeSeriesSplit. 
+    
     :param list_time: A list of time id. 
     :param n_split: Defaulted to 4, the integer number of folds. 
     :param percent_val_size: Defaulted to 10, a float number between 0 and 100 as the percentage of the total data to be considered as test set for each fold, the function takes the floor when the necessary. 
-    :return: A list of values in form of (fold_index, (train_index, test_index)) where fold_index run from 0 to n_split-1. 
+    :return: An enumerate of values in form of (fold_index, (train_index, test_index)) where fold_index run from 0 to n_split-1. 
     """
     time_len = len(list_time)
     val_size = np.floor(time_len)*(percent_val_size/100)
