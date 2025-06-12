@@ -110,6 +110,7 @@ def create_RV_timeseries(df_in, n_subint=60, in_start=0, in_end=600) -> np.array
     """
     A function that created RV for subintervals of the whole interval for a chosen stock_id and time_id. 
     It is expected that (in_end-in_start)%n_subint==0. 
+    
     :param df_in: A pandas dataframe with "log_return" and "seconds_in_bucket" columns. 
     :param n_subint: Integer number of total intervals wanted, defaulted to 60. 
     :param in_start: Integer start of the start of time interval, defaulted to 0. 
