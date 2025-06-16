@@ -12,6 +12,28 @@ def rv(series_log_return):
     #Created 06/16/25 Yuan
     return np.sqrt(np.sum(series_log_return**2))
 
+def realized_vol(df_in,return_row_id=True): 
+    #Created Yuan
+    #Updated 06/12/25 Yuan
+    """
+    A function that returns the realized volatility based on the log return series input (for instance book["log_return"] where is book is a pandas dataframe containing book data for a stock and time id). 
+    
+    :param df_in: dataframe containing log return data (with "log_return" column). 
+    :param return_row_id: Decides if the return value is a pair of form (Realized volatility,row_id) or only Realized volatility, defaulted to be True. 
+    :return: return a value or a pair depending on the choice of return_row_id. 
+    """
+    
+    series_log_return=df_in["log_return"]
+    rv=np.sqrt(np.sum(series_log_return**2))
+    if (return_row_id & (len(df_in)==0)):
+        print("Can not harvest stock_id and time_id")
+    if (return_row_id & (len(df_in)!=0)):
+        stock_id=str(df_in["stock_id"].iloc[0])
+        time_id=str(df_in["time_id"].iloc[0])
+        row_id=stock_id+"-"+time_id
+        return rv, row_id
+    return rv
+
 def create_df_RV_by_row_id(str_path): 
     #Created 06/16/25 Yuan
     """
@@ -82,28 +104,6 @@ def trade_for_stock(str_file_path,stock_id,time_id):
     # int_stock_id=int(str_file_path.split("=")[1])
     df_raw_trade.loc[:,"stock_id"]=int_stock_id
     return df_raw_trade 
-
-def realized_vol(df_in,return_row_id=True): 
-    #Created Yuan
-    #Updated 06/12/25 Yuan
-    """
-    A function that returns the realized volatility based on the log return series input (for instance book["log_return"] where is book is a pandas dataframe containing book data for a stock and time id). 
-    
-    :param df_in: dataframe containing log return data (with "log_return" column). 
-    :param return_row_id: Decides if the return value is a pair of form (Realized volatility,row_id) or only Realized volatility, defaulted to be True. 
-    :return: return a value or a pair depending on the choice of return_row_id. 
-    """
-    
-    series_log_return=df_in["log_return"]
-    rv=np.sqrt(np.sum(series_log_return**2))
-    if (return_row_id & (len(df_in)==0)):
-        print("Can not harvest stock_id and time_id")
-    if (return_row_id & (len(df_in)!=0)):
-        stock_id=str(df_in["stock_id"].iloc[0])
-        time_id=str(df_in["time_id"].iloc[0])
-        row_id=stock_id+"-"+time_id
-        return rv, row_id
-    return rv
     
 def time_cross_val_split(list_time,n_split=4,percent_val_size=10): 
     #Created Yuan
