@@ -1,7 +1,41 @@
 import pandas as pd
 import numpy as np
+import glob
 
 # import sklearn
+
+def log_return(list_wap):
+    #Created 06/16/25 Yuan 
+    return np.log(list_wap).diff() 
+
+def rv(series_log_return): 
+    #Created 06/16/25 Yuan
+    return np.sqrt(np.sum(series_log_return**2))
+
+def create_df_RV_by_row_id(str_path): 
+    #Created 06/16/25 Yuan
+    """
+    A function that creates a dataframe with RV organized by row_id. 
+    
+    :param str_path: A string of path to the parquet file of book data. 
+    :return: A dataframe as describe. 
+    """
+    
+    list_parquets=glob.glob(str_path+"/*")
+    df_rv=pd.DataFrame()
+    for path in list_parquets: 
+        df_raw_book=pd.read_parquet(path) 
+        df_raw_book["wap"]=(df_raw_book["bid_price1"]*df_raw_book["ask_size1"]+df_raw_book["ask_price1"]*df_raw_book["bid_size1"])/(df_raw_book["bid_size1"]+df_raw_book["ask_size1"])
+        df_raw_book["log_return"]=df_raw_book.groupby(["time_id"])["wap"].apply(log_return).reset_index(drop=True)
+        df_raw_book=df_raw_book[~df_raw_book["log_return"].isnull()]
+        df_rv_stock=pd.DataFrame(df_raw_book.groupby(["time_id"])["log_return"].agg(rv)).reset_index()
+        df_rv_stock=df_rv_stock.rename(columns={"log_return":"RV"})
+        stock_id=path.split("=")[1]
+        df_rv_stock["row_id"]=df_rv_stock["time_id"].apply(lambda x:f"{stock_id}-{x}")
+        df_rv_stock=df_rv_stock[["row_id","RV"]]
+        df_rv=pd.concat([df_rv,df_rv_stock])
+    return df_rv
+    
 
 def book_for_stock(str_file_path,stock_id,time_id,create_para=True):
     #Created Yuan
