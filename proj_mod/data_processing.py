@@ -5,6 +5,7 @@ import numpy as np
 
 def book_for_stock(str_file_path,stock_id,time_id,create_para=True):
     #Created Yuan
+    # Modified 06/16/25 Martin
     """
     A function that returns a pandas dataframe containing the book data of a stock specified in str_file_path with certain time_id. 
     The function defaulted to create the wap and log return of wap, but this can be turned off by setting create_para to False. 
@@ -19,13 +20,14 @@ def book_for_stock(str_file_path,stock_id,time_id,create_para=True):
     str_file_path=str_file_path+"/stock_id="+str(int_stock_id)
     df_raw_book=pd.read_parquet(str_file_path)
     df_raw_book=df_raw_book[df_raw_book["time_id"]==time_id]
-    # int_stock_id=int(str_file_path.split("=")[1])
+    # # int_stock_id=int(str_file_path.split("=")[1])
     df_raw_book.loc[:,"stock_id"]=int_stock_id
     if create_para: 
         df_raw_book["wap"] = (df_raw_book["bid_price1"]*df_raw_book["ask_size1"]+df_raw_book["ask_price1"]*df_raw_book["bid_size1"])/(df_raw_book["bid_size1"]+df_raw_book["ask_size1"])
         df_raw_book.loc[:,"log_return"] = np.log(df_raw_book["wap"]).diff()
         df_raw_book=df_raw_book[~df_raw_book["log_return"].isnull()]
-    df_raw_book=df_raw_book.reset_index()
+    # resets the index and removes the original index
+    df_raw_book=df_raw_book.reset_index(drop=True)
     
     return df_raw_book
 
@@ -61,7 +63,7 @@ def realized_vol(df_in,return_row_id=True):
     series_log_return=df_in["log_return"]
     rv=np.sqrt(np.sum(series_log_return**2))
     if (return_row_id & (len(df_in)==0)):
-        print("Can not harvest srock_id and time_id")
+        print("Can not harvest stock_id and time_id")
     if (return_row_id & (len(df_in)!=0)):
         stock_id=str(df_in["stock_id"].iloc[0])
         time_id=str(df_in["time_id"].iloc[0])

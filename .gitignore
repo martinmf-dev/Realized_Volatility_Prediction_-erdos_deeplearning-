@@ -3,6 +3,7 @@
 raw_data/*
 processed_data/*
 .ipynb_checkpoints
+*.pyc 
 
 #Exception rules
 ##Keep Folder_explanation.txt files in raw_data and processed_data

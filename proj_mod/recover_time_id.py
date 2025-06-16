@@ -35,7 +35,8 @@ def reconstruct_time_id_order(str_path):
     :param str_path: The path to book_train.parquet. 
     :return: A list of time id in recover order. 
     """
-    paths = glob.glob(str_path+'/**/*.parquet')
+    # Added 'sorted' for consistent ordering between computers
+    paths = sorted(glob.glob(str_path+'/**/*.parquet'))
 
     df_files = pd.DataFrame(
         {'book_path': paths}) \
@@ -43,20 +44,21 @@ def reconstruct_time_id_order(str_path):
               engine='python')
 
     # build price matrix using tick-size
+    # Changed 'n_jobs' from 4 to -1 (uses all processors except for one)
     df_prices = pd.concat(
-        Parallel(n_jobs=4)(
+        Parallel(n_jobs=-1)(
             delayed(calc_prices)(r) for _, r in df_files.iterrows()
         )
     )
     df_prices = df_prices.pivot(index='time_id', columns='stock_id', values='price')
 
     # t-SNE to recovering time-id order
+    # 'n_iter' was replaced by 'max_iter' in sklearn >= 1.5
     clf = TSNE(
         n_components=1,
         perplexity=400,
         random_state=0,
         max_iter=2000
-        # Change 'max_iter' to 'n_iter' to run in versions of sklearn older than 1.5
     )
     compressed = clf.fit_transform(
         pd.DataFrame(minmax_scale(df_prices.fillna(df_prices.mean())))
