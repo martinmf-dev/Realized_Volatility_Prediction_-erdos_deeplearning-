@@ -34,8 +34,40 @@ def realized_vol(df_in,return_row_id=True):
         return rv, row_id
     return rv
 
+def create_df_wap_logreturn(df_raw_book):
+    #Created 06/17/25 Yuan 
+    """
+    Takes in a book df and return a df of the book with wap and log return created. 
+    """
+    # =pd.read_parquet(book_path) 
+    df_raw_book["wap"]=(df_raw_book["bid_price1"]*df_raw_book["ask_size1"]+df_raw_book["ask_price1"]*df_raw_book["bid_size1"])/(df_raw_book["bid_size1"]+df_raw_book["ask_size1"])
+    df_raw_book["log_return"]=df_raw_book.groupby(["time_id"])["wap"].apply(log_return).reset_index(drop=True)
+    return df_raw_book[~df_raw_book["log_return"].isnull()]
+
+def create_value_for_df_by_group(df,list_gp_cols,dict_funcs,dict_rename,group=True):
+    #Created 06/17/25 Yuan 
+    """
+    A function that take a df and returns a df grouped by columns required with functions applied to the df's columns and renameds the column. 
+    
+    :param df: In take dataframe. 
+    :param list_gp_cols: The columns of the dataframe to group by. 
+    :param dict_funcs: A diction of functions to apply to chosen columns (the columns are the keys of the dict). 
+    :param dict_rename: Rename chosen columns. 
+    :param group: Defaulted to True, indicating if grouping is required. 
+    :return: A dataframe as required. 
+    """
+    if not group: 
+        df_out=pd.DataFrame(df.agg(dict_funcs)).reset_index()
+        df_out=df_out.rename(columns=dict_rename)
+        return df_out
+    
+    df_out=pd.DataFrame(df.groupby(list_gp_cols).agg(dict_funcs)).reset_index()
+    df_out=df_out.rename(columns=dict_rename)
+    return df_out
+
 def create_df_RV_by_row_id(str_path): 
     #Created 06/16/25 Yuan
+    #Updated 06/17/25 Yuan
     """
     A function that creates a dataframe with RV organized by row_id. 
     
@@ -47,11 +79,13 @@ def create_df_RV_by_row_id(str_path):
     df_rv=pd.DataFrame()
     for path in list_parquets: 
         df_raw_book=pd.read_parquet(path) 
-        df_raw_book["wap"]=(df_raw_book["bid_price1"]*df_raw_book["ask_size1"]+df_raw_book["ask_price1"]*df_raw_book["bid_size1"])/(df_raw_book["bid_size1"]+df_raw_book["ask_size1"])
-        df_raw_book["log_return"]=df_raw_book.groupby(["time_id"])["wap"].apply(log_return).reset_index(drop=True)
-        df_raw_book=df_raw_book[~df_raw_book["log_return"].isnull()]
-        df_rv_stock=pd.DataFrame(df_raw_book.groupby(["time_id"])["log_return"].agg(rv)).reset_index()
-        df_rv_stock=df_rv_stock.rename(columns={"log_return":"RV"})
+        # df_raw_book["wap"]=(df_raw_book["bid_price1"]*df_raw_book["ask_size1"]+df_raw_book["ask_price1"]*df_raw_book["bid_size1"])/(df_raw_book["bid_size1"]+df_raw_book["ask_size1"])
+        # df_raw_book["log_return"]=df_raw_book.groupby(["time_id"])["wap"].apply(log_return).reset_index(drop=True)
+        # df_raw_book=df_raw_book[~df_raw_book["log_return"].isnull()]
+        df_raw_book=create_df_wap_logreturn(df_raw_book)
+        # df_rv_stock=pd.DataFrame(df_raw_book.groupby(["time_id"])["log_return"].agg(rv)).reset_index()
+        # df_rv_stock=df_rv_stock.rename(columns={"log_return":"RV"})
+        df_rv_stock=create_value_for_df_by_group(df_raw_book,list_gp_cols=["time_id"],dict_funcs={"log_return":rv},dict_rename={"log_return":"RV"})
         stock_id=path.split("=")[1]
         df_rv_stock["row_id"]=df_rv_stock["time_id"].apply(lambda x:f"{stock_id}-{x}")
         df_rv_stock=df_rv_stock[["row_id","RV"]]
