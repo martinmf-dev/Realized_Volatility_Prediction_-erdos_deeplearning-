@@ -44,19 +44,19 @@ def create_df_wap_logreturn(df_raw_book):
     df_raw_book["log_return"]=df_raw_book.groupby(["time_id"])["wap"].apply(log_return).reset_index(drop=True)
     return df_raw_book[~df_raw_book["log_return"].isnull()]
 
-def create_value_for_df_by_group(df,list_gp_cols,dict_funcs,dict_rename,group=True):
+def create_value_for_df_by_group(df,list_gp_cols,dict_funcs,dict_rename):
     #Created 06/17/25 Yuan 
     """
     A function that take a df and returns a df grouped by columns required with functions applied to the df's columns and renameds the column. 
+    This function is created purely to reduced the length of a line in programing, all it does is citing df.groupby, df.agg and df.rename. 
     
     :param df: In take dataframe. 
     :param list_gp_cols: The columns of the dataframe to group by. 
     :param dict_funcs: A diction of functions to apply to chosen columns (the columns are the keys of the dict). 
     :param dict_rename: Rename chosen columns. 
-    :param group: Defaulted to True, indicating if grouping is required. 
     :return: A dataframe as required. 
     """
-    if not group: 
+    if list_gp_cols==None: 
         df_out=pd.DataFrame(df.agg(dict_funcs)).reset_index()
         df_out=df_out.rename(columns=dict_rename)
         return df_out
@@ -91,7 +91,24 @@ def create_df_RV_by_row_id(str_path):
         df_rv_stock=df_rv_stock[["row_id","RV"]]
         df_rv=pd.concat([df_rv,df_rv_stock])
     return df_rv
-    
+
+def creat_df_trade_vals_by_row_id(str_path):
+    #Created 06/17/25 Yuan
+    """
+    A function that takes in path the trade parquet data and create trade data (avg and std of of price, size, order, and sum of size, and order) for a time bucket for each stock. 
+    """
+    parquet_trade=glob.glob(str_path+"/*")
+    df_vals=pd.DataFrame()
+    for path in parquet_trade: 
+        df_raw_trade=pd.read_parquet(path)
+        df_trade_vals=df_raw_trade.groupby(["time_id"]).agg({"price":["mean","std"], "size":["sum","mean","std"], "order_count":["sum","mean","std"]}).reset_index()
+        df_trade_vals.columns=df_trade_vals.columns.map("_".join)
+        df_trade_vals=df_trade_vals.rename(columns={"time_id_":"time_id"})
+        stock_id=path.split("=")[1]
+        df_trade_vals["row_id"]=df_trade_vals["time_id"].apply(lambda x:f"{stock_id}-{x}")
+        df_trade_vals.drop(columns=["time_id"],axis=1,inplace=True)
+        df_vals=pd.concat([df_vals,df_trade_vals])
+    return df_vals
 
 def book_for_stock(str_file_path,stock_id,time_id,create_para=True):
     #Created Yuan
