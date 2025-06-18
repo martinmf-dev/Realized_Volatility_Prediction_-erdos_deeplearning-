@@ -5,16 +5,12 @@ import glob
 # import sklearn
 
 def log_return(list_wap):
-    #Created 06/16/25 Yuan 
     return np.log(list_wap).diff() 
 
 def rv(series_log_return): 
-    #Created 06/16/25 Yuan
     return np.sqrt(np.sum(series_log_return**2))
 
 def realized_vol(df_in,return_row_id=True): 
-    #Created Yuan
-    #Updated 06/12/25 Yuan
     """
     A function that returns the realized volatility based on the log return series input (for instance book["log_return"] where is book is a pandas dataframe containing book data for a stock and time id). 
     
@@ -35,7 +31,6 @@ def realized_vol(df_in,return_row_id=True):
     return rv
 
 def create_df_wap_logreturn(df_raw_book):
-    #Created 06/17/25 Yuan 
     """
     Takes in a book df and return a df of the book with wap and log return created. 
     """
@@ -45,7 +40,6 @@ def create_df_wap_logreturn(df_raw_book):
     return df_raw_book[~df_raw_book["log_return"].isnull()]
 
 def create_value_for_df_by_group(df,list_gp_cols,dict_funcs,dict_rename):
-    #Created 06/17/25 Yuan 
     """
     A function that take a df and returns a df grouped by columns required with functions applied to the df's columns and renameds the column. 
     This function is created purely to reduced the length of a line in programing, all it does is citing df.groupby, df.agg and df.rename. 
@@ -66,8 +60,6 @@ def create_value_for_df_by_group(df,list_gp_cols,dict_funcs,dict_rename):
     return df_out
 
 def create_df_RV_by_row_id(str_path): 
-    #Created 06/16/25 Yuan
-    #Updated 06/17/25 Yuan
     """
     A function that creates a dataframe with RV organized by row_id. 
     
@@ -93,7 +85,6 @@ def create_df_RV_by_row_id(str_path):
     return df_rv
 
 def creat_df_trade_vals_by_row_id(str_path):
-    #Created 06/17/25 Yuan
     """
     A function that takes in path the trade parquet data and create trade data (avg and std of of price, size, order, and sum of size, and order) for a time bucket for each stock. 
     """
@@ -111,8 +102,6 @@ def creat_df_trade_vals_by_row_id(str_path):
     return df_vals
 
 def book_for_stock(str_file_path,stock_id,time_id,create_para=True):
-    #Created Yuan
-    # Modified 06/16/25 Martin
     """
     A function that returns a pandas dataframe containing the book data of a stock specified in str_file_path with certain time_id. 
     The function defaulted to create the wap and log return of wap, but this can be turned off by setting create_para to False. 
@@ -139,7 +128,6 @@ def book_for_stock(str_file_path,stock_id,time_id,create_para=True):
     return df_raw_book
 
 def trade_for_stock(str_file_path,stock_id,time_id):
-    #Created Yuan
     """
     A function that returns a pandas dataframe containing the trade data of a stock at a chosen time_id. 
     
@@ -157,7 +145,6 @@ def trade_for_stock(str_file_path,stock_id,time_id):
     return df_raw_trade 
     
 def time_cross_val_split(list_time,n_split=4,percent_val_size=10): 
-    #Created Yuan
     """
     A function that take in a list of time id and return a time series split for cross validation, this function is written due to issue with sklearn.model_selection.TimeSeriesSplit. 
     
@@ -193,7 +180,6 @@ def time_cross_val_split(list_time,n_split=4,percent_val_size=10):
     return enumerate(return_list)
 
 def create_RV_timeseries(df_in, n_subint=60, in_start=0, in_end=600) -> np.array: 
-    #Created 06/12/25 Yuan
     """
     A function that created RV for subintervals of the whole interval for a chosen stock_id and time_id. 
     It is expected that (in_end-in_start)%n_subint==0. 

@@ -2,7 +2,6 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 
 def rmspe(y_true, y_pred):
-    #Created 06/17/25 Yuan
     '''
     Compute Root Mean Square Percentage Error between two arrays.
     '''
@@ -11,7 +10,6 @@ def rmspe(y_true, y_pred):
     return loss
 
 def rmspe_of_linear(x,y): 
-    #Created 06/17/25 Yuan
     """
     Find rmspe when predicting y with x by linear regression. 
     """
@@ -21,7 +19,6 @@ def rmspe_of_linear(x,y):
     return rmspe(y_pred=pred_linear,y_true=y)
 
 def rmspe_linear_df(df,list_feature,str_target):
-    #Created 06/17/25 Yuan
     """
     Find rmspe when predicting target column of dataframe with features in dataframe by linear regression. 
     """
