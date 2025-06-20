@@ -2,6 +2,9 @@ import pandas as pd
 import numpy as np
 import glob
 
+from joblib import Parallel, delayed
+import gc
+
 # import sklearn
 
 def log_return(list_wap):
@@ -83,6 +86,39 @@ def create_df_RV_by_row_id(str_path):
         df_rv_stock=df_rv_stock[["row_id","RV"]]
         df_rv=pd.concat([df_rv,df_rv_stock])
     return df_rv
+
+def create_df_RV_by_row_id_stock(path): 
+    # This function is needed for the parallelized function 'create_df_RV_by_row_id_parallel'
+    # Last modified 25/06/20, 25/06/20, ....
+    """
+    A function that creates a dataframe with RV for ONE stock organized by row_id. 
+    
+    :param path: A string of path to the DIRECTORY of parquet files of book data. 
+    :return: A dataframe as describe for one stock. 
+    """
+    df_raw_book=pd.read_parquet(path) 
+    df_raw_book=create_df_wap_logreturn(df_raw_book)
+    df_rv_stock=create_value_for_df_by_group(df_raw_book,list_gp_cols=["time_id"],dict_funcs={"log_return":rv},dict_rename={"log_return":"RV"})
+    stock_id=path.split("=")[1]
+    df_rv_stock["row_id"]=df_rv_stock["time_id"].apply(lambda x:f"{stock_id}-{x}")
+    df_rv_stock=df_rv_stock[["row_id","RV"]]
+    return df_rv_stock
+
+def create_df_RV_by_row_id_parallel(str_path): 
+    # Last modified 25/06/20
+    """
+    A function that, in parallel, creates a dataframe with RV organized by row_id. 
+    
+    :param str_path: A string of path to the parquet file of book data. 
+    :return: A dataframe as describe. 
+    """  
+    list_parquets=glob.glob(str_path+"/*")
+    # For Parallel to play well with memory allocation, the function 'create_df_RV_by_row_id_stock' needs to be defined outside this function.
+    # If the memory usage spike is to big, try doing 'n_jobs=4' or some small number
+    df_rv_stock_list= Parallel(n_jobs=-1, backend='multiprocessing', batch_size=1)(delayed(create_df_RV_by_row_id_stock)(path) for path in list_parquets)
+    df_rv = pd.concat(df_rv_stock_list, ignore_index=False)
+    return df_rv
+
 
 def creat_df_trade_vals_by_row_id(str_path):
     """
