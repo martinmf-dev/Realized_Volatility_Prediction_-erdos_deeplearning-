@@ -33,13 +33,23 @@ def realized_vol(df_in,return_row_id=True):
         return rv, row_id
     return rv
 
-def create_df_wap_logreturn(df_raw_book):
+def create_df_wap_logreturn(df_raw_book,create_alt=True):
+    #Modified 06/23/25 added create_alt parameter, if we need further new parameters in the future, we can use similar method to add them in. 
     """
     Takes in a book df and return a df of the book with wap and log return created. 
+    
+    :param df_raw_book: The input book df. 
+    :param create_alt: Defaulted to true, create the wap and log returns according to alternative definitions as well. 
+    :return: The desired df. 
     """
     # =pd.read_parquet(book_path) 
     df_raw_book["wap"]=(df_raw_book["bid_price1"]*df_raw_book["ask_size1"]+df_raw_book["ask_price1"]*df_raw_book["bid_size1"])/(df_raw_book["bid_size1"]+df_raw_book["ask_size1"])
     df_raw_book["log_return"]=df_raw_book.groupby(["time_id"])["wap"].apply(log_return).reset_index(drop=True)
+
+    if create_alt:
+        df_raw_book["wap_mid"] = (df_raw_book["bid_price1"]*df_raw_book["bid_size1"]+df_raw_book["ask_price1"]*df_raw_book["ask_size1"]\
+                                 +df_raw_book["bid_price2"]*df_raw_book["bid_size2"]+df_raw_book["ask_price2"]*df_raw_book["ask_size2"])/(df_raw_book["bid_size1"]+df_raw_book["ask_size1"]+df_raw_book["bid_size2"]+df_raw_book["ask_size2"])
+        df_raw_book["log_return_mid"] = (df_raw_book.groupby("time_id")["wap_mid"].transform(lambda x: np.log(x).diff()))
     return df_raw_book[~df_raw_book["log_return"].isnull()]
 
 def create_value_for_df_by_group(df,list_gp_cols,dict_funcs,dict_rename):
@@ -56,7 +66,7 @@ def create_value_for_df_by_group(df,list_gp_cols,dict_funcs,dict_rename):
     if list_gp_cols==None: 
         df_out=pd.DataFrame(df.agg(dict_funcs)).reset_index()
         df_out=df_out.rename(columns=dict_rename)
-        return df_outjdc1990
+        return df_out
     
     df_out=pd.DataFrame(df.groupby(list_gp_cols).agg(dict_funcs)).reset_index()
     df_out=df_out.rename(columns=dict_rename)
@@ -156,6 +166,7 @@ def book_for_stock(str_file_path,stock_id,time_id,create_para=True):
     """
     A function that returns a pandas dataframe containing the book data of a stock specified in str_file_path with certain time_id. 
     The function defaulted to create the wap and log return of wap, but this can be turned off by setting create_para to False. 
+    NOTICE: THIS FUNCTION IS INEDDICIENT, BE ADVICED TO USE create_df_RV_by_row_id_stock INSTEAD. 
     
     :param str_file_path: A str of the path to the file of book data (parquet). 
     :param stock_id: The chosen stock_id. 
@@ -181,6 +192,7 @@ def book_for_stock(str_file_path,stock_id,time_id,create_para=True):
 def trade_for_stock(str_file_path,stock_id,time_id):
     """
     A function that returns a pandas dataframe containing the trade data of a stock at a chosen time_id. 
+    NOTICE: THIS FUNCTION IS INEFFICIENT, BE ADVICED TO USE create_df_trade_vals_by_row_id INSTEAD.
     
     :param str_file_path: A str of the path to the file of trade data (parquet). 
     :param stock_id: The chosen stock_id. 
@@ -230,31 +242,70 @@ def time_cross_val_split(list_time,n_split=4,percent_val_size=10):
 
     return enumerate(return_list)
 
-def create_RV_timeseries(df_in, n_subint=60, in_start=0, in_end=600) -> np.array: 
+# def create_RV_timeseries(df_in, n_subint=60, in_start=0, in_end=600): 
+#     """
+#     A function that created RV for subintervals of the whole interval for a chosen stock_id and time_id. 
+#     It is expected that (in_end-in_start)%n_subint==0. 
+    
+#     :param df_in: A pandas dataframe with "log_return" and "seconds_in_bucket" columns. 
+#     :param n_subint: Integer number of total intervals wanted, defaulted to 60. 
+#     :param in_start: Integer start of the start of time interval, defaulted to 0. 
+#     :param in_end: Integer end of the end of time interval, defaulted to 600. 
+#     :return: A numpy array of length n_subint populated by RV of each sub-interval. 
+#     """
+    
+#     in_len=in_end-in_start
+#     # print("length of interval is",in_len)
+#     if (in_len%n_subint): 
+#         # print("Both the length of interval and the total number of sub-interval are expected to be integers. The length of interval is not divisible by number of subinterval, returning None.")
+#         return None
+#     int_sublen=int(in_len/n_subint)
+#     arr_RV=np.zeros(n_subint)
+#     # print("length each sub-interval is", int_sublen)
+#     for index in range(n_subint):
+#         subin_start=index*int_sublen
+#         subin_end=(index+1)*int_sublen
+#         subin_RV=realized_vol(df_in=df_in[(df_in["seconds_in_bucket"]>subin_start)&(df_in["seconds_in_bucket"]<=subin_end)],return_row_id=False)
+#         # print("RV of the sub-interval",(index+1),"is",subin_RV)
+#         arr_RV[index]=subin_RV
+#         # print(arr_RV)
+#     return arr_RV
+
+def create_timeseries_stock(df_in, dict_agg, dict_rename, n_subint=60, in_start=0, in_end=600, create_row_id=True): 
+    #Created 06/23/25 
+    
     """
-    A function that created RV for subintervals of the whole interval for a chosen stock_id and time_id. 
+    A function that creats a df with desired time series features of the whole interval for a chosen stock_id. 
     It is expected that (in_end-in_start)%n_subint==0. 
     
-    :param df_in: A pandas dataframe with "log_return" and "seconds_in_bucket" columns. 
+    :param df_in: A pandas dataframe with "seconds_in_bucket", "stock_id", and "time_id" columns, this dataframe should only have one singular stock id. 
+    :param dict_agg: A dictionary in form of {string indicating the column \: the function to apply to the column,...}. As an example, {"log_return" \: data_processing.rv} will create the RV time serie for each of the time_id for the chosen stock id. Notice that only one function is allowed for one column. 
+    :param dict_rename: A dictionary in form of {string indicating the column \: the new name of the column,...}. As an example, {"log_return" \: "sub_int_RV"} will name the newly created time series feature according to column "log_return" as "sub_int_RV". 
     :param n_subint: Integer number of total intervals wanted, defaulted to 60. 
     :param in_start: Integer start of the start of time interval, defaulted to 0. 
     :param in_end: Integer end of the end of time interval, defaulted to 600. 
-    :return: A numpy array of length n_subint populated by RV of each sub-interval. 
+    :param create_row_id: Defaulted to True, decides if the row id will be created. 
+    :return: The desired df. 
     """
     
     in_len=in_end-in_start
+    stock_id=df_in["stock_id"].iloc[0]
     # print("length of interval is",in_len)
     if (in_len%n_subint): 
-        # print("Both the length of interval and the total number of sub-interval are expected to be integers. The length of interval is not divisible by number of subinterval, returning None.")
+        print("Both the length of interval and the total number of sub-interval are expected to be integers. The length of interval is not divisible by number of subinterval, returning None.")
         return None
     int_sublen=int(in_len/n_subint)
-    arr_RV=np.zeros(n_subint)
+    df_out=pd.DataFrame()
     # print("length each sub-interval is", int_sublen)
     for index in range(n_subint):
         subin_start=index*int_sublen
         subin_end=(index+1)*int_sublen
-        subin_RV=realized_vol(df_in=df_in[(df_in["seconds_in_bucket"]>subin_start)&(df_in["seconds_in_bucket"]<=subin_end)],return_row_id=False)
-        # print("RV of the sub-interval",(index+1),"is",subin_RV)
-        arr_RV[index]=subin_RV
-        # print(arr_RV)
-    return arr_RV
+        df_step=df_in[(df_in["seconds_in_bucket"]>subin_start)&(df_in["seconds_in_bucket"]<=subin_end)].groupby("time_id").agg(dict_agg).reset_index()
+        df_step=df_step.rename(columns=dict_rename)
+        df_step["sub_int_num"]=index+1
+        df_step["stock_id"]=stock_id
+        if create_row_id:
+            df_step["row_id"]=df_step["stock_id"].astype(str)+"_"+df_step["time_id"].astype(str)
+        df_out=pd.concat([df_out,df_step])
+        # print("finished for sub interval",index+1)
+    return df_out
