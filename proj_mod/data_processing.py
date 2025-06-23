@@ -56,7 +56,7 @@ def create_value_for_df_by_group(df,list_gp_cols,dict_funcs,dict_rename):
     if list_gp_cols==None: 
         df_out=pd.DataFrame(df.agg(dict_funcs)).reset_index()
         df_out=df_out.rename(columns=dict_rename)
-        return df_out
+        return df_outjdc1990
     
     df_out=pd.DataFrame(df.groupby(list_gp_cols).agg(dict_funcs)).reset_index()
     df_out=df_out.rename(columns=dict_rename)
@@ -69,7 +69,7 @@ def create_df_RV_by_row_id(str_path):
     :param str_path: A string of path to the parquet file of book data. 
     :return: A dataframe as describe. 
     """
-    
+    # Last modified 25/06/23
     list_parquets=glob.glob(str_path+"/*")
     df_rv=pd.DataFrame()
     for path in list_parquets: 
@@ -83,17 +83,22 @@ def create_df_RV_by_row_id(str_path):
         df_rv_stock=create_value_for_df_by_group(df_raw_book,list_gp_cols=["time_id"],dict_funcs={"log_return":rv},dict_rename={"log_return":"RV"})
         stock_id=path.split("=")[1]
         df_rv_stock["row_id"]=df_rv_stock["time_id"].apply(lambda x:f"{stock_id}-{x}")
-        df_rv_stock=df_rv_stock[["row_id","RV"]]
+        # Adds a column for 'stock_id'
+        df_rv_stock["stock_id"]= stock_id
+        # Comments out this line, as we are interested in returning all the columns
+        # df_rv_stock=df_rv_stock[["row_id","RV"]]
         df_rv=pd.concat([df_rv,df_rv_stock])
+    # Reindexes rows 
+    df_rv = df_rv.reset_index(drop=True)
     return df_rv
 
 def create_df_RV_by_row_id_stock(path): 
     # This function is needed for the parallelized function 'create_df_RV_by_row_id_parallel'
-    # Last modified 25/06/20, 25/06/20, ....
+    # Last modified 25/06/20, 25/06/23, ....
     """
     A function that creates a dataframe with RV for ONE stock organized by row_id. 
     
-    :param path: A string of path to the DIRECTORY of parquet files of book data. 
+    :param path: A string of path to the parquet files of book data. 
     :return: A dataframe as describe for one stock. 
     """
     df_raw_book=pd.read_parquet(path) 
@@ -101,29 +106,34 @@ def create_df_RV_by_row_id_stock(path):
     df_rv_stock=create_value_for_df_by_group(df_raw_book,list_gp_cols=["time_id"],dict_funcs={"log_return":rv},dict_rename={"log_return":"RV"})
     stock_id=path.split("=")[1]
     df_rv_stock["row_id"]=df_rv_stock["time_id"].apply(lambda x:f"{stock_id}-{x}")
-    df_rv_stock=df_rv_stock[["row_id","RV"]]
+    # Adds a column for 'stock_id'
+    df_rv_stock["stock_id"]= stock_id
+    # Comments out this line, as we are interested in returning all the columns
+    #df_rv_stock=df_rv_stock[["row_id","RV"]]
     return df_rv_stock
 
 def create_df_RV_by_row_id_parallel(str_path): 
-    # Last modified 25/06/20
+    # Last modified 25/06/20, 25/06/23, ...
     """
     A function that, in parallel, creates a dataframe with RV organized by row_id. 
     
-    :param str_path: A string of path to the parquet file of book data. 
+    :param str_path: A string of path to the DIRECTORY of parquet files of book data. 
     :return: A dataframe as describe. 
     """  
     list_parquets=glob.glob(str_path+"/*")
     # For Parallel to play well with memory allocation, the function 'create_df_RV_by_row_id_stock' needs to be defined outside this function.
-    # If the memory usage spike is to big, try doing 'n_jobs=4' or some small number
+    # If the memory usage spike is to big, try replacing 'n_jobs=-1' by 'n_jobs=4' or some small number
     df_rv_stock_list= Parallel(n_jobs=-1, backend='multiprocessing', batch_size=1)(delayed(create_df_RV_by_row_id_stock)(path) for path in list_parquets)
-    df_rv = pd.concat(df_rv_stock_list, ignore_index=False)
+    # ignore the indexes of elements in df_rv_stock_list and reindexes the rows
+    df_rv = pd.concat(df_rv_stock_list, ignore_index=True)
     return df_rv
 
 
-def creat_df_trade_vals_by_row_id(str_path):
+def create_df_trade_vals_by_row_id(str_path):
     """
     A function that takes in path the trade parquet data and create trade data (avg and std of of price, size, order, and sum of size, and order) for a time bucket for each stock. 
     """
+    # Last modified 25/06/23
     parquet_trade=glob.glob(str_path+"/*")
     df_vals=pd.DataFrame()
     for path in parquet_trade: 
@@ -133,8 +143,13 @@ def creat_df_trade_vals_by_row_id(str_path):
         df_trade_vals=df_trade_vals.rename(columns={"time_id_":"time_id"})
         stock_id=path.split("=")[1]
         df_trade_vals["row_id"]=df_trade_vals["time_id"].apply(lambda x:f"{stock_id}-{x}")
-        df_trade_vals.drop(columns=["time_id"],axis=1,inplace=True)
+        # Adds a column for 'stock_id'
+        df_trade_vals["stock_id"]= stock_id
+        # Comments out this line, as we want to keep 'time_id'
+        # df_trade_vals.drop(columns=["time_id"],axis=1,inplace=True)
         df_vals=pd.concat([df_vals,df_trade_vals])
+    # Reindexes rows 
+    df_vals = df_vals.reset_index(drop=True)
     return df_vals
 
 def book_for_stock(str_file_path,stock_id,time_id,create_para=True):
