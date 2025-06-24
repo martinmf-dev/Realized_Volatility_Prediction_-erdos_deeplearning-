@@ -271,9 +271,9 @@ def time_cross_val_split(list_time,n_split=4,percent_val_size=10):
 #         # print(arr_RV)
 #     return arr_RV
 
-def create_timeseries_stock(df_in, dict_agg, dict_rename, n_subint=60, in_start=0, in_end=600, create_row_id=True): 
-    #Created 06/23/25 
-    
+def create_timeseries_stock(path, dict_agg, dict_rename, n_subint=60, in_start=0, in_end=600, create_row_id=True): 
+    #Created 25/06/23   
+    # Last modified 25/06/24
     """
     A function that creats a df with desired time series features of the whole interval for a chosen stock_id. 
     It is expected that (in_end-in_start)%n_subint==0. 
@@ -287,7 +287,10 @@ def create_timeseries_stock(df_in, dict_agg, dict_rename, n_subint=60, in_start=
     :param create_row_id: Defaulted to True, decides if the row id will be created. 
     :return: The desired df. 
     """
-    
+    # Constructs dataframe with book data for the stock specified in path
+    df_in = pd.read_parquet(path)
+    df_in['stock_id']=int(path.split("=")[1])
+    df_in=create_df_wap_logreturn(df_in)
     in_len=in_end-in_start
     stock_id=df_in["stock_id"].iloc[0]
     # print("length of interval is",in_len)
@@ -308,4 +311,26 @@ def create_timeseries_stock(df_in, dict_agg, dict_rename, n_subint=60, in_start=
             df_step["row_id"]=df_step["stock_id"].astype(str)+"_"+df_step["time_id"].astype(str)
         df_out=pd.concat([df_out,df_step])
         # print("finished for sub interval",index+1)
+    # resets the index and removes the original index
+    df_out=df_out.reset_index(drop=True)
+    # Deletes intermediate dataframe to free up RAM
+    del df_in
+    del df_step
+    gc.collect()
     return df_out
+
+
+def create_timeseries(str_path, dict_agg, dict_rename, n_subint=60, in_start=0, in_end=600, create_row_id=True):
+    # Created 25/06/23
+    # Last modified 25/06/24
+    list_parquets=glob.glob(str_path+"/*")
+    df_time_series_list= Parallel(n_jobs=-1,
+                                  backend='multiprocessing', 
+                                  batch_size=1)(delayed(create_timeseries_stock)
+                                                (path, dict_agg=dict_agg, dict_rename=dict_rename, n_subint=n_subint, in_start=in_start, 
+                                                 in_end=in_end, create_row_id=create_row_id) 
+                                                for path in list_parquets)
+    df_time_series = pd.concat(df_time_series_list, ignore_index=True)
+    return df_time_series
+
+
