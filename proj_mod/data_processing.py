@@ -275,10 +275,10 @@ def create_timeseries_stock(path, dict_agg, dict_rename, n_subint=60, in_start=0
     #Created 25/06/23   
     # Last modified 25/06/24
     """
-    A function that creats a df with desired time series features of the whole interval for a chosen stock_id. 
+    A function that creates a df with desired time series features of the whole interval for a chosen stock_id. 
     It is expected that (in_end-in_start)%n_subint==0. 
     
-    :param df_in: A pandas dataframe with "seconds_in_bucket", "stock_id", and "time_id" columns, this dataframe should only have one singular stock id. 
+    :path: A string of path to the parquet files of book data. 
     :param dict_agg: A dictionary in form of {string indicating the column \: the function to apply to the column,...}. As an example, {"log_return" \: data_processing.rv} will create the RV time serie for each of the time_id for the chosen stock id. Notice that only one function is allowed for one column. 
     :param dict_rename: A dictionary in form of {string indicating the column \: the new name of the column,...}. As an example, {"log_return" \: "sub_int_RV"} will name the newly created time series feature according to column "log_return" as "sub_int_RV". 
     :param n_subint: Integer number of total intervals wanted, defaulted to 60. 
@@ -323,6 +323,19 @@ def create_timeseries_stock(path, dict_agg, dict_rename, n_subint=60, in_start=0
 def create_timeseries(str_path, dict_agg, dict_rename, n_subint=60, in_start=0, in_end=600, create_row_id=True):
     # Created 25/06/23
     # Last modified 25/06/24
+    """
+    A function that creates a df with the time series of desired features on the whole interval for all the stocks.
+    
+    :str_path: A string of path to the DIRECTORY of parquet files of book data. 
+    :param dict_agg: A dictionary in form of {string indicating the column \: the function to apply to the column,...}. As an example, {"log_return" \: data_processing.rv} will create the RV time serie for each of the time_id for the chosen stock id. Notice that only one function is allowed for one column. 
+    :param dict_rename: A dictionary in form of {string indicating the column \: the new name of the column,...}. As an example, {"log_return" \: "sub_int_RV"} will name the newly created time series feature according to column "log_return" as "sub_int_RV". 
+    :param n_subint: Integer number of total intervals wanted, defaulted to 60. 
+    :param in_start: Integer start of the start of time interval, defaulted to 0. 
+    :param in_end: Integer end of the end of time interval, defaulted to 600. 
+    :param create_row_id: Defaulted to True, decides if the row id will be created. 
+    :return: The desired df. 
+    
+    """
     list_parquets=glob.glob(str_path+"/*")
     df_time_series_list= Parallel(n_jobs=-1,
                                   backend='multiprocessing', 
