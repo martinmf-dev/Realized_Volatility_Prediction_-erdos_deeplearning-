@@ -273,7 +273,7 @@ def time_cross_val_split(list_time,n_split=4,percent_val_size=10):
 
 def create_timeseries_stock(path, dict_agg, dict_rename, n_subint=60, in_start=0, in_end=600, create_row_id=True): 
     #Created 25/06/23   
-    # Last modified 25/06/24
+    #Modified 25/06/24 Fixed issue where some time id is missing sub intervals. 
     """
     A function that creates a df with desired time series features of the whole interval for a chosen stock_id. 
     It is expected that (in_end-in_start)%n_subint==0. 
@@ -299,23 +299,30 @@ def create_timeseries_stock(path, dict_agg, dict_rename, n_subint=60, in_start=0
         return None
     int_sublen=int(in_len/n_subint)
     df_out=pd.DataFrame()
-    # print("length each sub-interval is", int_sublen)
+    op_columns=list(dict_agg.keys())
+    time_id_list=df_in["time_id"].unique()
     for index in range(n_subint):
         subin_start=index*int_sublen
         subin_end=(index+1)*int_sublen
-        df_step=df_in[(df_in["seconds_in_bucket"]>subin_start)&(df_in["seconds_in_bucket"]<=subin_end)].groupby("time_id").agg(dict_agg).reset_index()
+        df_step=df_in[(df_in["seconds_in_bucket"]>subin_start)&(df_in["seconds_in_bucket"]<=subin_end)].groupby("time_id", dropna=False).agg(dict_agg).reset_index()
+        time_id_present=df_step["time_id"].unique()
+        time_id_missing=[time for time in time_id_list if time not in time_id_present]
+        df_patch=pd.DataFrame({"time_id":time_id_missing})
+        df_patch[op_columns]=0
+        df_step=pd.concat([df_step,df_patch])
+        del df_patch
         df_step=df_step.rename(columns=dict_rename)
         df_step["sub_int_num"]=index+1
         df_step["stock_id"]=stock_id
         if create_row_id:
-            df_step["row_id"]=df_step["stock_id"].astype(str)+"_"+df_step["time_id"].astype(str)
+            df_step["row_id"]=df_step["stock_id"].astype(str)+"-"+df_step["time_id"].astype(str)
         df_out=pd.concat([df_out,df_step])
+        del df_step
         # print("finished for sub interval",index+1)
     # resets the index and removes the original index
     df_out=df_out.reset_index(drop=True)
     # Deletes intermediate dataframe to free up RAM
     del df_in
-    del df_step
     gc.collect()
     return df_out
 
