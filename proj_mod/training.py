@@ -100,14 +100,14 @@ def reg_training_loop_rmspe(n_epochs=1000, optimizer, model, train_loader, val_l
     :param list_train_loss: Defaulted to None. If set to certain list, the function will append the training loss values to the end of the list in order of epochs. 
     :param list_val_loss: Defaulted to None. If set to certain list, the function will append the validation loss values to the end of the list in order of epochs. 
     :param report_interval: Defaulted to 20. The training loop will report once every report interval number of epochs. 
-    :return: Nothing. 
+    :return: The state dictionary of the best model. 
     """
     total_data_count=len(train_loader.dataset)
     best_val_loss=0
     best_val_epoch=0
     start_time=time.time()
-    if recall_best: 
-        best_mode_state_dict=dict()
+    # if recall_best: 
+    best_mode_state_dict=dict()
     for epoch in range(1,n_epochs+1): 
         sum_of_sqaure_train=0
         #Training loop for a batch#############
@@ -157,7 +157,7 @@ def reg_training_loop_rmspe(n_epochs=1000, optimizer, model, train_loader, val_l
                 model.load_state_dict(best_mode_state_dict)
                 print("Best model state dictionary of this training loop is reloaded.\n") 
             print("According to validation loss, the best model is reached at epoch", best_val_epoch, " with validation loss: ",best_val_loss,".\n","The total number of epoch trained is ", epoch, ".\n","Training completed in: ", time_cost,".\n")
-            return 
+            return best_mode_state_dict
     print("All ",n_epochs," epochs have been completed.\n")
     print("According to validation loss, the best model is reached at epoch", best_val_epoch, " with validation loss: ",best_val_loss,".\n")
     #If requested, reload the best model (according to the best validation loss). 
@@ -165,4 +165,4 @@ def reg_training_loop_rmspe(n_epochs=1000, optimizer, model, train_loader, val_l
         model.load_state_dict(best_mode_state_dict)
         print("Best model state dictionary of this training loop is reloaded.\n")
     print("Training completed.",time_cost,"\n")
-    return 
+    return best_mode_state_dict
