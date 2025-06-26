@@ -291,6 +291,7 @@ def create_timeseries_stock(path, dict_agg, dict_rename, n_subint=60, in_start=0
     df_in = pd.read_parquet(path)
     df_in['stock_id']=int(path.split("=")[1])
     df_in=create_df_wap_logreturn(df_in)
+    df_in["time_id"]=df_in["time_id"].astype(int)
     in_len=in_end-in_start
     stock_id=df_in["stock_id"].iloc[0]
     # print("length of interval is",in_len)
@@ -305,6 +306,7 @@ def create_timeseries_stock(path, dict_agg, dict_rename, n_subint=60, in_start=0
         subin_start=index*int_sublen
         subin_end=(index+1)*int_sublen
         df_step=df_in[(df_in["seconds_in_bucket"]>subin_start)&(df_in["seconds_in_bucket"]<=subin_end)].groupby("time_id", dropna=False).agg(dict_agg).reset_index()
+        df_step["time_id"]=df_step["time_id"].astype(int)
         time_id_present=df_step["time_id"].unique()
         time_id_missing=[time for time in time_id_list if time not in time_id_present]
         df_patch=pd.DataFrame({"time_id":time_id_missing})
@@ -313,11 +315,13 @@ def create_timeseries_stock(path, dict_agg, dict_rename, n_subint=60, in_start=0
         del df_patch
         df_step=df_step.rename(columns=dict_rename)
         df_step["sub_int_num"]=index+1
-        df_step["stock_id"]=stock_id
+        df_step["stock_id"]=int(stock_id)
         if create_row_id:
-            df_step["row_id"]=df_step["stock_id"].astype(str)+"-"+df_step["time_id"].astype(str)
+            df_step["row_id"]=df_step["stock_id"].astype(int).astype(str)+"-"+df_step["time_id"].astype(int).astype(str)
         df_out=pd.concat([df_out,df_step])
         del df_step
+        df_out["time_id"]=df_out["time_id"].astype(int)
+        # df_out["row_id"]=df_out["row_id"].apply(lambda x: x.split(".")[0])
         # print("finished for sub interval",index+1)
     # resets the index and removes the original index
     df_out=df_out.reset_index(drop=True)

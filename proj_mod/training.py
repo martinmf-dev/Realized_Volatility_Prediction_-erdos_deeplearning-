@@ -95,12 +95,12 @@ def reg_training_loop_rmspe(n_epochs=1000, optimizer, model, train_loader, val_l
     :param val_loader: Validation loader used. 
     :param ot_steps: Defaulted to 100. The number of epochs, where, if validation loss does not improve, the training will be stopped. Turn off this feature by setting it to None. 
     :param recall_best: Defaulted to True. Reloads the model to the best version according to validation loss. 
-    :param device: GPU of CPU, choose your poison. 
+    :param device: GPU or CPU, choose your poison. 
     :param eps: Defaulted to sys.float_info.epsilon. The small value needed to avoid division by zero. 
     :param list_train_loss: Defaulted to None. If set to certain list, the function will append the training loss values to the end of the list in order of epochs. 
     :param list_val_loss: Defaulted to None. If set to certain list, the function will append the validation loss values to the end of the list in order of epochs. 
     :param report_interval: Defaulted to 20. The training loop will report once every report interval number of epochs. 
-    :return: The state dictionary of the best model. 
+    :return: The state dictionary of the best model, according to validation loss. 
     """
     total_data_count=len(train_loader.dataset)
     best_val_loss=0
