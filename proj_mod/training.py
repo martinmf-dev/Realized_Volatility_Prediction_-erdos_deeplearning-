@@ -138,9 +138,9 @@ def reg_training_loop_rmspe(n_epochs=1000, optimizer, model, train_loader, val_l
         if ((epoch==1) or (epoch_val_loss<best_val_loss)): 
                 best_val_loss=epoch_val_loss
                 best_val_epoch=epoch
-                #If it is requested to remember the best model (based on validation loss), store the state dictionary 
-                if recall_best:
-                    best_mode_state_dict=model.state_dict()
+                #Remember the best model (based on validation loss), store the state dictionary 
+                # if recall_best:
+                best_mode_state_dict=model.state_dict()
         #Update the list of train and validation loss, if requested 
         if list_train_loss!= None: 
             list_train_loss.append(epoch_train_loss)
