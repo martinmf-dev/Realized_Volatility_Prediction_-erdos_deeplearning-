@@ -3,8 +3,11 @@ import torch
 import torch.nn as nn
 import sys
 import time
+import pandas as pd
 from sklearn.linear_model import LinearRegression
+from torch.utils.data import Dataset, DataLoader
 
+#Metric###############################################################################################################
 
 def rmspe(y_true, y_pred):
     '''
@@ -56,6 +59,8 @@ class MSPELoss(nn.Module):
         
     def forward(self, ypred, ytrue): 
         return torch.mean(torch.square((ypred-ytrue)/(ytrue+self.eps)))
+    
+#Training loop###################################################################################################################################
      
 def reg_validator_rmspe(model, val_loader, eps=sys.float_info.epsilon, device): 
     #Created 06/25/25 In progress, testing needed. 
@@ -82,7 +87,6 @@ def reg_validator_rmspe(model, val_loader, eps=sys.float_info.epsilon, device):
         rmspe=torch.sqrt(sum_of_square/total_count)
     return rmspe
         
-   
 def reg_training_loop_rmspe(n_epochs=1000, optimizer, model, train_loader, val_loader, ot_steps=100, recall_best=True, device, eps=sys.float_info.epsilon, list_train_loss=None, list_val_loss=None, report_interval=20): 
     #Created 06/25/25 In progress, testing needed
     """
@@ -166,3 +170,124 @@ def reg_training_loop_rmspe(n_epochs=1000, optimizer, model, train_loader, val_l
         print("Best model state dictionary of this training loop is reloaded.\n")
     print("Training completed.",time_cost,"\n")
     return best_mode_state_dict
+
+#Dataset##################################################################################################################################################
+
+class RVdataset(Dataset): 
+    #Created 06/27/25, see create_datasets.ipynb for documentation. 
+    def __init__(self, time_id_list=None, stock_id_list=None, tab_features=None, ts_features=None, target="target", df_ts_feat=None, df_tab_feat=None, df_target=None):
+        """
+        Object in subclass of Dataset. 
+        
+        :param time_id_list: Defaulted to None, in which case ALL time_id's will be included. A list containing the time_id's of interest. If the value is not None, it is expected that "time_id" column (with values type int) is present in all input dataframes. 
+        :param stock_id_list: Defaulted to None, in which case ALL stock_id's will be included. A list containing the stock_id's of interst. If the value is not None, it is expected that "stock_id" column (with values type int) is present in all input dataframes. 
+        :param tab_features: Defaulted to None, in which case NO feature will be included. A list containing the string of names of columns in df_tab_feat to be used as tabular features, for instance, the RV of current 10 mins bucket is a tabular feature. 
+        :param ts_features: Defaulted to None, in which case NO feature will be included. A list containing the string of names of columns in df_ts_feat to be used as time series features, for instance, sub_int_RV in book_time created in data_processing_functions.ipynb. 
+        :param target: Defaulted to "target". The string indicating how target is identified in column index of dataframe. 
+        :param df_ts_feat: Defaulted to None. The dataframe containing the time series like features, must have "row_id" as identifier for rows and column "sub_int_num" as indicator of time series ordering. 
+        :param df_tab_feat: Defaulted to None. The dataframe containing the tabluar features, must have "row_id" as identifier for rows. When df_target is not None, one should make sure there is no target in the df_tab_feat. 
+        :param df_target: Defaulted to None, in which case, target will be searched in df_tab_feat instead and expects df_tab_feat to contain target column to be used as target. The dataframe containing the target stored in the target column, must have "row_id" to be used as identifier. 
+        
+        Object attributes: 
+        
+            self.features: The collection of features as a torch tensor. 
+            self.target: The collection of targets as a torch tensor. 
+            self.len: The length of the whole dataset object. 
+            self.featuresplit: A dictionary in form of {feature name:length of feature, ...} to help distinguish different features in the feature torch tensor. The length of feature is included since some of the features are time series, while some are tabular. 
+            
+        Object methods: 
+
+            self.__init__(): Initialize the object. 
+            self.__getitem__(): Returns a feature and a target both as torch tensors, in this order, of a candidate. 
+            self.__len__(): Returns the length of the dataset object. 
+        """
+        super().__init__()
+        #First case, no restriction on time and stock id 
+        if ((time_id_list==None) & (stock_id_list==None)):
+            #Import and pivot time series features 
+            df_ts_pv=df_ts_feat.pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
+            #Import, add in the target, and pivot tabular features 
+            df_tab_copy=df_tab_feat.copy(deep=True)
+            if not df_target is None: 
+                df_tab_copy=pd.merge(df_tab_copy,df_target,on="row_id")
+            df_tab_copy["sub_int_num"]=np.nan 
+            feat_tar=tab_features+[target]
+            df_tab_pv=df_tab_copy.pivot(index="row_id", columns="sub_int_num", values=feat_tar)
+            del df_tab_copy 
+            #Create the full dataframe 
+            df_whole_pv_dna=pd.merge(df_ts_pv,df_tab_pv,on="row_id").dropna(axis="rows")
+            del df_ts_pv
+            del df_tab_pv
+            del feat_tar
+        #Second case, only resticting stock id 
+        elif (time_id_list==None):
+            #Import and pivot time series features 
+            df_ts_pv=df_ts_feat[df_ts_feat["stock_id"].isin(stock_id_list)].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
+            #Import, add in the target, and pivot tabular features 
+            df_tab_copy=df_tab_feat[df_tab_feat["stock_id"].isin(stock_id_list)]
+            if not df_target is None: 
+                df_tab_copy=pd.merge(df_tab_copy,df_target[df_target["stock_id"].isin(stock_id_list)],on="row_id")
+            df_tab_copy["sub_int_num"]=np.nan 
+            feat_tar=tab_features+[target]
+            df_tab_pv=df_tab_copy.pivot(index="row_id", columns="sub_int_num", values=feat_tar)
+            del df_tab_copy 
+            #Create the full dataframe 
+            df_whole_pv_dna=pd.merge(df_ts_pv,df_tab_pv,on="row_id").dropna(axis="rows")
+            del df_ts_pv
+            del df_tab_pv
+            del feat_tar
+        #Thrid case, only restricting time id 
+        elif (stock_id_list==None): 
+            #Import and pivot time series features 
+            df_ts_pv=df_ts_feat[df_ts_feat["time_id"].isin(time_id_list)].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
+            #Import, add in the target, and pivot tabular features 
+            df_tab_copy=df_tab_feat[df_tab_feat["time_id"].isin(time_id_list)]
+            if not df_target is None: 
+                df_tab_copy=pd.merge(df_tab_copy,df_target[df_target["time_id"].isin(time_id_list)],on="row_id")
+            df_tab_copy["sub_int_num"]=np.nan 
+            feat_tar=tab_features+[target]
+            df_tab_pv=df_tab_copy.pivot(index="row_id", columns="sub_int_num", values=feat_tar)
+            del df_tab_copy 
+            #Create the full dataframe 
+            df_whole_pv_dna=pd.merge(df_ts_pv,df_tab_pv,on="row_id").dropna(axis="rows")
+            del df_ts_pv
+            del df_tab_pv
+            del feat_tar
+            # print(df_whole_pv_dna.columns)
+        #Last, and forth, case, restricting both stock and time id
+        else: 
+            #Import and pivot time series features 
+            df_ts_pv=df_ts_feat[(df_ts_feat["time_id"].isin(time_id_list))&(df_ts_feat["stock_id"].isin(stock_id_list))].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
+            #Import, add in the target, and pivot tabular features 
+            df_tab_copy=df_tab_feat[(df_tab_feat["time_id"].isin(time_id_list))&(df_tab_feat["stock_id"].isin(stock_id_list))]
+            if not df_target is None:
+                df_tab_copy=pd.merge(df_tab_copy,df_target[(df_target["time_id"].isin(time_id_list))&(df_target["stock_id"].isin(stock_id_list))],on="row_id")
+            df_tab_copy["sub_int_num"]=np.nan 
+            feat_tar=tab_features+[target]
+            df_tab_pv=df_tab_copy.pivot(index="row_id", columns="sub_int_num", values=feat_tar)
+            del df_tab_copy 
+            #Create the full dataframe 
+            df_whole_pv_dna=pd.merge(df_ts_pv,df_tab_pv,on="row_id").dropna(axis="rows")
+            del df_ts_pv
+            del df_tab_pv
+            del feat_tar
+        #Create object values 
+        #The features, targets, and length
+        all_feat=ts_features+tab_features
+        self.features=torch.tensor(df_whole_pv_dna.loc[:,all_feat].values.astype(np.float32),dtype=torch.float32)
+        self.target=torch.tensor(df_whole_pv_dna.loc[:,target].values.astype(np.float32),dtype=torch.float32)
+        self.len=df_whole_pv_dna.shape[0]
+        #The record of feature positions 
+        all_feat_len=[df_whole_pv_dna[feat].shape[1] for feat in all_feat]
+        self.featuresplit=dict(zip(all_feat,all_feat_len))
+        #Clean up
+        del df_whole_pv_dna
+        del all_feat 
+        del all_feat_len
+    def __getitem__(self, index):
+        # return super().__getitem__(index)
+        return self.features[index], self.target[index]
+    def __len__(self):
+        return self.len
+        
+#NNmodel########################################################################################################################################

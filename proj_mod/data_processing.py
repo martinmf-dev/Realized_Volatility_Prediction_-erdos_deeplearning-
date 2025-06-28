@@ -166,7 +166,7 @@ def book_for_stock(str_file_path,stock_id,time_id,create_para=True):
     """
     A function that returns a pandas dataframe containing the book data of a stock specified in str_file_path with certain time_id. 
     The function defaulted to create the wap and log return of wap, but this can be turned off by setting create_para to False. 
-    NOTICE: THIS FUNCTION IS INEDDICIENT, BE ADVICED TO USE create_df_RV_by_row_id_stock INSTEAD. 
+    NOTICE: THIS FUNCTION IS INEFFICIENT, BE ADVICED TO USE create_df_RV_by_row_id_stock INSTEAD. 
     
     :param str_file_path: A str of the path to the file of book data (parquet). 
     :param stock_id: The chosen stock_id. 
@@ -242,6 +242,7 @@ def time_cross_val_split(list_time,n_split=4,percent_val_size=10):
 
     return enumerate(return_list)
 
+#Below function has been replaced by create_timeseries_stock() to improve efficiency. 
 # def create_RV_timeseries(df_in, n_subint=60, in_start=0, in_end=600): 
 #     """
 #     A function that created RV for subintervals of the whole interval for a chosen stock_id and time_id. 
