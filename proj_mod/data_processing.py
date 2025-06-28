@@ -214,7 +214,7 @@ def time_cross_val_split(list_time,n_split=4,percent_val_size=10):
     :param list_time: A list of time id. 
     :param n_split: Defaulted to 4, the integer number of folds. 
     :param percent_val_size: Defaulted to 10, a float number between 0 and 100 as the percentage of the total data to be considered as test set for each fold, the function takes the floor when the necessary. 
-    :return: An enumerate of values in form of (fold_index, (train_index, test_index)) where fold_index run from 0 to n_split-1. 
+    :return: An enumerate of values in form of (fold_index, (train_index, test_index)) where fold_index run from 0 to n_split-1, train_index contains all index for training in corresponding fold, and test_index contains all index for testing in corresponding fold. 
     """
     time_len = len(list_time)
     val_size = np.floor(time_len)*(percent_val_size/100)
