@@ -62,7 +62,7 @@ class MSPELoss(nn.Module):
     
 #Training loop###################################################################################################################################
      
-def reg_validator_rmspe(model, val_loader, eps=sys.float_info.epsilon, device): 
+def reg_validator_rmspe(model, val_loader, device, eps=sys.float_info.epsilon): 
     #Created 06/25/25 In progress, testing needed. 
     """
     Returns the rmspe on the validation set for regression type training. 
@@ -87,7 +87,7 @@ def reg_validator_rmspe(model, val_loader, eps=sys.float_info.epsilon, device):
         rmspe=torch.sqrt(sum_of_square/total_count)
     return rmspe
         
-def reg_training_loop_rmspe(n_epochs=1000, optimizer, model, train_loader, val_loader, ot_steps=100, recall_best=True, device, eps=sys.float_info.epsilon, list_train_loss=None, list_val_loss=None, report_interval=20): 
+def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=sys.float_info.epsilon, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000): 
     #Created 06/25/25 In progress, testing needed
     """
     A training loop for regression type training with rmspe loss function. 
@@ -179,8 +179,8 @@ class RVdataset(Dataset):
         """
         Object in subclass of Dataset. 
         
-        :param time_id_list: Defaulted to None, in which case ALL time_id's will be included. A list containing the time_id's of interest. If the value is not None, it is expected that "time_id" column (with values type int) is present in all input dataframes. 
-        :param stock_id_list: Defaulted to None, in which case ALL stock_id's will be included. A list containing the stock_id's of interst. If the value is not None, it is expected that "stock_id" column (with values type int) is present in all input dataframes. 
+        :param time_id_list: Defaulted to None, in which case ALL time_id's will be included. A list (numpy array will NOT work) containing the time_id's of interest. If the value is not None, it is expected that "time_id" column (with values type int) is present in all input dataframes. 
+        :param stock_id_list: Defaulted to None, in which case ALL stock_id's will be included. A list (numpy array will NOT work) containing the stock_id's of interst. If the value is not None, it is expected that "stock_id" column (with values type int) is present in all input dataframes. 
         :param tab_features: Defaulted to None, in which case NO feature will be included. A list containing the string of names of columns in df_tab_feat to be used as tabular features, for instance, the RV of current 10 mins bucket is a tabular feature. 
         :param ts_features: Defaulted to None, in which case NO feature will be included. A list containing the string of names of columns in df_ts_feat to be used as time series features, for instance, sub_int_RV in book_time created in data_processing_functions.ipynb. 
         :param target: Defaulted to "target". The string indicating how target is identified in column index of dataframe. 

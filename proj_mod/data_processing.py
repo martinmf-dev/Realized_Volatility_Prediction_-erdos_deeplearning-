@@ -207,14 +207,15 @@ def trade_for_stock(str_file_path,stock_id,time_id):
     df_raw_trade.loc[:,"stock_id"]=int_stock_id
     return df_raw_trade 
     
-def time_cross_val_split(list_time,n_split=4,percent_val_size=10): 
+def time_cross_val_split(list_time,n_split=4,percent_val_size=10, list_output=False): 
     """
     A function that take in a list of time id and return a time series split for cross validation, this function is written due to issue with sklearn.model_selection.TimeSeriesSplit. 
     
     :param list_time: A list of time id. 
     :param n_split: Defaulted to 4, the integer number of folds. 
     :param percent_val_size: Defaulted to 10, a float number between 0 and 100 as the percentage of the total data to be considered as test set for each fold, the function takes the floor when the necessary. 
-    :return: An enumerate of values in form of (fold_index, (train_index, test_index)) where fold_index run from 0 to n_split-1, train_index contains all index for training in corresponding fold, and test_index contains all index for testing in corresponding fold. 
+    :param list_output: Defaulted to False. Makes the returned value a list instead of an enumerate object. 
+    :return: A list or an enumerate of values in form of (fold_index, (train_index, test_index)) (fold_index is ignored, and only the ordered pair is present if list_output is required) where fold_index run from 0 to n_split-1, train_index contains all index for training in corresponding fold, and test_index contains all index for testing in corresponding fold. It should be noted that train_index and test_index are both numpy arrays.
     """
     time_len = len(list_time)
     val_size = np.floor(time_len)*(percent_val_size/100)
@@ -231,6 +232,9 @@ def time_cross_val_split(list_time,n_split=4,percent_val_size=10):
         print("Train set end at",list_time[train_ends[-1]],".\n")
         print("Test set start at",list_time[train_ends[-1]+1],"end at",list_time[test_ends[-1]],".\n")
         return_list.append((list_time[:train_ends[-1]+1],list_time[train_ends[-1]+1:test_ends[-1]+1]))
+    
+    if list_output: 
+        return return_list
     
     # tscv = sklearn.model_selection.TimeSeriesSplit(gap=0,n_splits=n_split,test_size=val_size)
     
