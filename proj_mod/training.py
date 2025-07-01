@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import sys
 import time
 import pandas as pd
@@ -208,7 +209,7 @@ class RVdataset(Dataset):
         #If query_str is None: 
         if query_str is None: 
             #First case, no restriction on time and stock id 
-            if ((time_id_list==None) & (stock_id_list==None)):
+            if ((time_id_list is None) & (stock_id_list is None)):
                 #Import and pivot time series features 
                 df_ts_pv=df_ts_feat.pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
                 #Import, add in the target, and pivot tabular features 
@@ -225,7 +226,7 @@ class RVdataset(Dataset):
                 del df_tab_pv
                 del feat_tar
             #Second case, only resticting stock id 
-            elif (time_id_list==None):
+            elif (time_id_list is None):
                 #Import and pivot time series features 
                 df_ts_pv=df_ts_feat[df_ts_feat["stock_id"].isin(stock_id_list)].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
                 #Import, add in the target, and pivot tabular features 
@@ -242,7 +243,7 @@ class RVdataset(Dataset):
                 del df_tab_pv
                 del feat_tar
             #Thrid case, only restricting time id 
-            elif (stock_id_list==None): 
+            elif (stock_id_list is None): 
                 #Import and pivot time series features 
                 df_ts_pv=df_ts_feat[df_ts_feat["time_id"].isin(time_id_list)].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
                 #Import, add in the target, and pivot tabular features 
@@ -313,3 +314,37 @@ class RVdataset(Dataset):
         return self.len
         
 #NNmodel########################################################################################################################################
+
+class frozen_diff_conv(nn.Module):
+    #Created 07/01/25: See Frozen_conv_layer.ipynb for documentation. 
+    def __init__(self,n_diff=1):
+        """
+        A frozen 1d convolution layer that creates "n th derivative" features. It expects input of tensor shape (N,Channel,Length) with N be any arbitrary positive integer, Channel == 1, and Length be any arbitrary integer. 
+        
+        :param n_diff: Defaulted to 1. The number of derivative wanted. 
+        :return: A tensor of shape (N, n_diff, Length). Where the n th (start from zero) tensor in the dimension 1 (we start with dimension 0) is the n th "derivative" of the imput tensor. However, if n_diff >= Length, None will be returned. 
+        """
+        super().__init__()
+        self.n_diff=n_diff
+        self.frozen_conv=nn.Conv1d(1,1,kernel_size=2,bias=False)
+        with torch.no_grad():
+            self.frozen_conv.weight[:]=torch.tensor([[[-1.0,1.0]]])
+            # self.frozen_conv.bias.zero_()
+
+    def forward(self,x):
+        out_tensor=x
+        x_diff=x
+        #Check if the user is taking too many derivatives 
+        if self.n_diff>=x.shape[2]: 
+            print("Too many derivatives. Returning None.\n")
+            return None
+        for diff in range(1,self.n_diff+1): 
+            x_diff=self.frozen_conv(x_diff)
+            x_diff_pad=F.pad(x_diff,(0,diff),mode="constant",value=0)
+            out_tensor=torch.cat((out_tensor,x_diff_pad),dim=1)
+            
+        # x_diff=self.frozen_conv(x)
+        # x_diff_pad=F.pad(x_diff,(0,1),mode="constant",value=0)
+        # out_tensor=torch.cat((x,x_diff_pad),dim=1)
+        
+        return out_tensor
