@@ -319,7 +319,7 @@ class frozen_diff_conv(nn.Module):
     #Created 07/01/25: See Frozen_conv_layer.ipynb for documentation. 
     def __init__(self,n_diff=1):
         """
-        A frozen 1d convolution layer that creates "n th derivative" features. It expects input of tensor shape (N,Channel,Length) with N be any arbitrary positive integer, Channel == 1, and Length be any arbitrary integer. 
+        A frozen 1d convolution layer that creates "n th derivative" features for timeseries features. It expects input of tensor shape (N,Channel,Length) with N be any arbitrary positive integer, Channel == 1, and Length be any arbitrary integer. 
         
         :param n_diff: Defaulted to 1. The number of derivative wanted. 
         :return: A tensor of shape (N, n_diff, Length). Where the n th (start from zero) tensor in the dimension 1 (we start with dimension 0) is the n th "derivative" of the imput tensor. However, if n_diff >= Length, None will be returned. 
