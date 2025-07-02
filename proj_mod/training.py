@@ -177,7 +177,8 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
 class RVdataset(Dataset): 
     #Created 06/27/25, see create_datasets.ipynb for documentation. 
     #Modified 06/30/25, added query_str option. 
-    def __init__(self, query_str=None, query_val_list=None, time_id_list=None, stock_id_list=None, tab_features=None, ts_features=None, target="target", df_ts_feat=None, df_tab_feat=None, df_target=None):
+    # Modified 07/02/25 added get_row_id method and numeric ordering option
+    def __init__(self, query_str=None, query_val_list=None, time_id_list=None, stock_id_list=None, tab_features=None, ts_features=None, target="target", df_ts_feat=None, df_tab_feat=None, df_target=None, numeric=False):
         """
         Object in subclass of Dataset. 
         
@@ -191,6 +192,7 @@ class RVdataset(Dataset):
         :param df_ts_feat: Defaulted to None. The dataframe containing the time series like features, must have "row_id" as identifier for rows and column "sub_int_num" as indicator of time series ordering. 
         :param df_tab_feat: Defaulted to None. The dataframe containing the tabluar features, must have "row_id" as identifier for rows. When df_target is not None, one should make sure there is no target in the df_tab_feat. 
         :param df_target: Defaulted to None, in which case, target will be searched in df_tab_feat instead and expects df_tab_feat to contain target column to be used as target. The dataframe containing the target stored in the target column, must have "row_id" to be used as identifier. 
+        :param numeric: Defaulted to False. When set to true, RVdataset returns rows ordered numerically first by stock_id, and then by time_id 
         
         Object attributes: 
         
@@ -204,6 +206,7 @@ class RVdataset(Dataset):
             self.__init__(): Initialize the object. 
             self.__getitem__(): Returns a feature and a target both as torch tensors, in this order, of a candidate. 
             self.__len__(): Returns the length of the dataset object. 
+            get_row_id(): Returns the row_id for the feature and target returned
         """
         super().__init__()
         #If query_str is None: 
@@ -297,6 +300,19 @@ class RVdataset(Dataset):
         #Create object values 
         #The features, targets, and length
         all_feat=ts_features+tab_features
+
+        # Reorders the rows of dataframe numerically (first by 'stock_id', then by 'time_id')
+        if numeric==True:
+            df_whole_pv_dna = df_whole_pv_dna.loc[
+                df_whole_pv_dna.index.to_series()
+                .apply(lambda s: tuple(map(int, s.split('-'))))
+                .sort_values()
+                .index
+            ]
+        
+        # I added this to identify the returned item
+        self.row_ids = df_whole_pv_dna.index.to_list()
+        
         self.features=torch.tensor(df_whole_pv_dna.loc[:,all_feat].values.astype(np.float32),dtype=torch.float32)
         self.target=torch.tensor(df_whole_pv_dna.loc[:,target].values.astype(np.float32),dtype=torch.float32)
         self.len=df_whole_pv_dna.shape[0]
@@ -312,6 +328,9 @@ class RVdataset(Dataset):
         return self.features[index], self.target[index]
     def __len__(self):
         return self.len
+     # I added this to identify the returned item   
+    def get_row_id(self, index):
+        return self.row_ids[index]     
         
 #NNmodel########################################################################################################################################
 
