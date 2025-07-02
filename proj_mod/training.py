@@ -178,6 +178,7 @@ class RVdataset(Dataset):
     #Created 06/27/25, see create_datasets.ipynb for documentation. 
     #Modified 06/30/25, added query_str option. 
     # Modified 07/02/25 added get_row_id method and numeric ordering option
+    #Modified 07/02/25 fixed issue with error when tab_feature is None
     def __init__(self, query_str=None, query_val_list=None, time_id_list=None, stock_id_list=None, tab_features=None, ts_features=None, target="target", df_ts_feat=None, df_tab_feat=None, df_target=None, numeric=False):
         """
         Object in subclass of Dataset. 
@@ -214,12 +215,18 @@ class RVdataset(Dataset):
             #First case, no restriction on time and stock id 
             if ((time_id_list is None) & (stock_id_list is None)):
                 #Import and pivot time series features 
-                df_ts_pv=df_ts_feat.pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
-                #Import, add in the target, and pivot tabular features 
-                df_tab_copy=df_tab_feat.copy(deep=True)
+                if not df_ts_feat is None:
+                    df_ts_pv=df_ts_feat.pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
+                    #Import, add in the target, and pivot tabular features 
+                if not df_tab_feat is None: 
+                    df_tab_copy=df_tab_feat.copy(deep=True)
                 if not df_target is None: 
-                    df_tab_copy=pd.merge(df_tab_copy,df_target,on="row_id")
-                df_tab_copy["sub_int_num"]=np.nan 
+                    if df_tab_feat is None: 
+                        df_tab_copy=df_target
+                        tab_features=[]
+                    else: 
+                        df_tab_copy=pd.merge(df_tab_copy,df_target,on="row_id")
+                df_tab_copy.loc[:,"sub_int_num"]=np.nan 
                 feat_tar=tab_features+[target]
                 df_tab_pv=df_tab_copy.pivot(index="row_id", columns="sub_int_num", values=feat_tar)
                 del df_tab_copy 
@@ -231,12 +238,18 @@ class RVdataset(Dataset):
             #Second case, only resticting stock id 
             elif (time_id_list is None):
                 #Import and pivot time series features 
-                df_ts_pv=df_ts_feat[df_ts_feat["stock_id"].isin(stock_id_list)].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
-                #Import, add in the target, and pivot tabular features 
-                df_tab_copy=df_tab_feat[df_tab_feat["stock_id"].isin(stock_id_list)]
+                if not df_ts_feat is None: 
+                    df_ts_pv=df_ts_feat[df_ts_feat["stock_id"].isin(stock_id_list)].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
+                    #Import, add in the target, and pivot tabular features 
+                if not df_tab_feat is None: 
+                    df_tab_copy=df_tab_feat[df_tab_feat["stock_id"].isin(stock_id_list)]
                 if not df_target is None: 
-                    df_tab_copy=pd.merge(df_tab_copy,df_target[df_target["stock_id"].isin(stock_id_list)],on="row_id")
-                df_tab_copy["sub_int_num"]=np.nan 
+                    if df_tab_feat is None: 
+                        df_tab_copy=df_target[df_target["stock_id"].isin(stock_id_list)]
+                        tab_features=[]
+                    else: 
+                        df_tab_copy=pd.merge(df_tab_copy,df_target[df_target["stock_id"].isin(stock_id_list)],on="row_id")
+                df_tab_copy.loc[:,"sub_int_num"]=np.nan 
                 feat_tar=tab_features+[target]
                 df_tab_pv=df_tab_copy.pivot(index="row_id", columns="sub_int_num", values=feat_tar)
                 del df_tab_copy 
@@ -248,12 +261,18 @@ class RVdataset(Dataset):
             #Thrid case, only restricting time id 
             elif (stock_id_list is None): 
                 #Import and pivot time series features 
-                df_ts_pv=df_ts_feat[df_ts_feat["time_id"].isin(time_id_list)].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
-                #Import, add in the target, and pivot tabular features 
-                df_tab_copy=df_tab_feat[df_tab_feat["time_id"].isin(time_id_list)]
+                if not df_ts_feat is None: 
+                    df_ts_pv=df_ts_feat[df_ts_feat["time_id"].isin(time_id_list)].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
+                    #Import, add in the target, and pivot tabular features 
+                if not df_tab_feat is None: 
+                    df_tab_copy=df_tab_feat[df_tab_feat["time_id"].isin(time_id_list)]
                 if not df_target is None: 
-                    df_tab_copy=pd.merge(df_tab_copy,df_target[df_target["time_id"].isin(time_id_list)],on="row_id")
-                df_tab_copy["sub_int_num"]=np.nan 
+                    if df_tab_feat is None: 
+                        df_tab_copy=df_target[df_target["time_id"].isin(time_id_list)]
+                        tab_features=[]
+                    else: 
+                        df_tab_copy=pd.merge(df_tab_copy,df_target[df_target["time_id"].isin(time_id_list)],on="row_id")
+                df_tab_copy.loc[:,"sub_int_num"]=np.nan 
                 feat_tar=tab_features+[target]
                 df_tab_pv=df_tab_copy.pivot(index="row_id", columns="sub_int_num", values=feat_tar)
                 del df_tab_copy 
@@ -266,12 +285,18 @@ class RVdataset(Dataset):
             #Last, and forth, case, restricting both stock and time id
             else: 
                 #Import and pivot time series features 
-                df_ts_pv=df_ts_feat[(df_ts_feat["time_id"].isin(time_id_list))&(df_ts_feat["stock_id"].isin(stock_id_list))].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
-                #Import, add in the target, and pivot tabular features 
-                df_tab_copy=df_tab_feat[(df_tab_feat["time_id"].isin(time_id_list))&(df_tab_feat["stock_id"].isin(stock_id_list))]
+                if not df_ts_feat is None: 
+                    df_ts_pv=df_ts_feat[(df_ts_feat["time_id"].isin(time_id_list))&(df_ts_feat["stock_id"].isin(stock_id_list))].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
+                    #Import, add in the target, and pivot tabular features 
+                if not df_tab_feat is None: 
+                    df_tab_copy=df_tab_feat[(df_tab_feat["time_id"].isin(time_id_list))&(df_tab_feat["stock_id"].isin(stock_id_list))]
                 if not df_target is None:
-                    df_tab_copy=pd.merge(df_tab_copy,df_target[(df_target["time_id"].isin(time_id_list))&(df_target["stock_id"].isin(stock_id_list))],on="row_id")
-                df_tab_copy["sub_int_num"]=np.nan 
+                    if df_tab_feat is None: 
+                        df_tab_copy=df_target[(df_target["time_id"].isin(time_id_list))&(df_target["stock_id"].isin(stock_id_list))]
+                        tab_features=[]
+                    else: 
+                        df_tab_copy=pd.merge(df_tab_copy,df_target[(df_target["time_id"].isin(time_id_list))&(df_target["stock_id"].isin(stock_id_list))],on="row_id")
+                df_tab_copy.loc[:,"sub_int_num"]=np.nan 
                 feat_tar=tab_features+[target]
                 df_tab_pv=df_tab_copy.pivot(index="row_id", columns="sub_int_num", values=feat_tar)
                 del df_tab_copy 
@@ -283,12 +308,18 @@ class RVdataset(Dataset):
         #If query_str is not None, apply query_str filtering and ignoring time_id_list and stock_id_list filtering. 
         else: 
             #Import and pivot time series features 
-            df_ts_pv=df_ts_feat.query(query_str).pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
-            #Import, add in the target, and pivot tabular features 
-            df_tab_copy=df_tab_feat.query(query_str)
+            if not df_ts_feat is None: 
+                df_ts_pv=df_ts_feat.query(query_str).pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
+                #Import, add in the target, and pivot tabular features 
+            if not df_tab_feat is None: 
+                df_tab_copy=df_tab_feat.query(query_str)
             if not df_target is None: 
-                df_tab_copy=pd.merge(df_tab_copy,df_target.query(query_str),on="row_id")
-            df_tab_copy["sub_int_num"]=np.nan 
+                if df_tab_feat is None: 
+                    df_tab_copy=df_target.query(query_str)
+                    tab_features=[]
+                else: 
+                    df_tab_copy=pd.merge(df_tab_copy,df_target.query(query_str),on="row_id")
+            df_tab_copy.loc[:,"sub_int_num"]=np.nan 
             feat_tar=tab_features+[target]
             df_tab_pv=df_tab_copy.pivot(index="row_id", columns="sub_int_num", values=feat_tar)
             del df_tab_copy 
