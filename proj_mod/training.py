@@ -63,7 +63,7 @@ class MSPELoss(nn.Module):
     
 #Training loop###################################################################################################################################
      
-def reg_validator_rmspe(model, val_loader, device, eps=sys.float_info.epsilon): 
+def reg_validator_rmspe(model, val_loader, device, eps=sys.float_info.epsilon,scaler=10000): 
     #Created 06/25/25 In progress, testing needed. 
     """
     Returns the rmspe on the validation set for regression type training. 
@@ -72,6 +72,7 @@ def reg_validator_rmspe(model, val_loader, device, eps=sys.float_info.epsilon):
     :param val_loader: The loader that feeds the validation set. 
     :param eps: Defaulted to sys.float_info.epsilon. The small value needed to avoid division by zero. 
     :param device: The device used to calculate. 
+    :param scaler: Defaulted to 10000. Scaling the input and output value so that they are not too small. 
     :return: The rmspe on the validation set. 
     """
     sum_of_square=0
@@ -81,6 +82,8 @@ def reg_validator_rmspe(model, val_loader, device, eps=sys.float_info.epsilon):
         return None
     with torch.no_grad():
         for feature, target in val_loader: 
+            feature*=scaler
+            target*=scaler
             feature=feature.to(device=device)
             target=target.to(device=device)
             pred=model(feature)
@@ -88,7 +91,7 @@ def reg_validator_rmspe(model, val_loader, device, eps=sys.float_info.epsilon):
         rmspe=torch.sqrt(sum_of_square/total_count)
     return rmspe
         
-def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=sys.float_info.epsilon, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000): 
+def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=sys.float_info.epsilon, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000, scaler=10000): 
     #Created 06/25/25 In progress, testing needed
     """
     A training loop for regression type training with rmspe loss function. 
@@ -105,6 +108,7 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
     :param list_train_loss: Defaulted to None. If set to certain list, the function will append the training loss values to the end of the list in order of epochs. 
     :param list_val_loss: Defaulted to None. If set to certain list, the function will append the validation loss values to the end of the list in order of epochs. 
     :param report_interval: Defaulted to 20. The training loop will report once every report interval number of epochs. 
+    :param scaler: Defaulted to 10000. Scaling the input and output value so that they are not too small. 
     :return: The state dictionary of the best model, according to validation loss. 
     """
     total_data_count=len(train_loader.dataset)
@@ -118,6 +122,10 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
         #Training loop for a batch#############
         #######################################
         for feature, target in train_loader: 
+            #Try to scale the values a little. 
+            with torch.no_grad():
+                feature*=scaler
+                target*=scaler
             #First, the standard training steps 
             feature=feature.to(device=device)
             target=target.to(device=device)
@@ -139,7 +147,7 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
         with torch.no_grad():    
             epoch_train_loss=torch.sqrt(sum_of_sqaure_train/total_data_count)
         #Calculate the validation loss of this epoch (without grad, citing another function)
-        epoch_val_loss=reg_validator_rmspe(model=model,val_loader=val_loader,eps=eps,device=device)
+        epoch_val_loss=reg_validator_rmspe(model=model,val_loader=val_loader,eps=eps,device=device,scaler=scaler)
         #Update the best validation loss and the epoch that it occurred     
         if ((epoch==1) or (epoch_val_loss<best_val_loss)): 
                 best_val_loss=epoch_val_loss
