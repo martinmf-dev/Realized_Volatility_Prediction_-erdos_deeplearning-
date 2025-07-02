@@ -4,6 +4,8 @@ raw_data/*
 processed_data/*
 .ipynb_checkpoints
 *.pyc 
+##Exclude the dotenv_env folder 
+dotenv_env/
 
 #Exception rules
 ##Keep Folder_explanation.txt files in raw_data and processed_data

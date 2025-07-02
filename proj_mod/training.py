@@ -38,9 +38,9 @@ class RMSPELoss(nn.Module):
     """
     RMSPE is not a premade pytorch loss function, the following creates the loss function so that it can be used in training, if needed. 
     
-    :param eps: Defaulted to sys.float_info.epsilon. The small value needed to avoid division by zero. 
+    :param eps: Defaulted to 1e-10. The small value needed to avoid division by zero. 
     """
-    def __init__(self,eps=sys.float_info.epsilon): 
+    def __init__(self,eps=1e-10): 
         super(RMSPELoss,self).__init__()
         self.eps=eps
         
@@ -52,9 +52,9 @@ class MSPELoss(nn.Module):
     """
     Mean squared percentage error is not a premade pytorch loss function, the following creates the loss function so that it can be used in training, if needed. 
     
-    :param eps: Defaulted to sys.float_info.epsilon. The small value needed to avoid division by zero. 
+    :param eps: Defaulted to 1e-10. The small value needed to avoid division by zero. 
     """
-    def __init__(self,eps=sys.float_info.epsilon): 
+    def __init__(self,eps=1e-10): 
         super(RMSPELoss,self).__init__()
         self.eps=eps
         
@@ -63,14 +63,14 @@ class MSPELoss(nn.Module):
     
 #Training loop###################################################################################################################################
      
-def reg_validator_rmspe(model, val_loader, device, eps=sys.float_info.epsilon): 
+def reg_validator_rmspe(model, val_loader, device, eps=1e-10): 
     #Created 06/25/25 In progress, testing needed. 
     """
     Returns the rmspe on the validation set for regression type training. 
     
     :param model: The model used. 
     :param val_loader: The loader that feeds the validation set. 
-    :param eps: Defaulted to sys.float_info.epsilon. The small value needed to avoid division by zero. 
+    :param eps: Defaulted to 1e-10. The small value needed to avoid division by zero. 
     :param device: The device used to calculate. 
     :return: The rmspe on the validation set. 
     """
@@ -84,11 +84,11 @@ def reg_validator_rmspe(model, val_loader, device, eps=sys.float_info.epsilon):
             feature=feature.to(device=device)
             target=target.to(device=device)
             pred=model(feature)
-            sum_of_square+=torch.square((pred-target)/(target+eps))
+            sum_of_square+=torch.sum(torch.square((pred-target)/(target+eps)))
         rmspe=torch.sqrt(sum_of_square/total_count)
     return rmspe
         
-def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=sys.float_info.epsilon, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000): 
+def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=1e-10, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000): 
     #Created 06/25/25 In progress, testing needed
     """
     A training loop for regression type training with rmspe loss function. 
@@ -101,7 +101,7 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
     :param ot_steps: Defaulted to 100. The number of epochs, where, if validation loss does not improve, the training will be stopped. Turn off this feature by setting it to None. 
     :param recall_best: Defaulted to True. Reloads the model to the best version according to validation loss. 
     :param device: GPU or CPU, choose your poison. 
-    :param eps: Defaulted to sys.float_info.epsilon. The small value needed to avoid division by zero. 
+    :param eps: Defaulted to 1e-10. The small value needed to avoid division by zero. 
     :param list_train_loss: Defaulted to None. If set to certain list, the function will append the training loss values to the end of the list in order of epochs. 
     :param list_val_loss: Defaulted to None. If set to certain list, the function will append the validation loss values to the end of the list in order of epochs. 
     :param report_interval: Defaulted to 20. The training loop will report once every report interval number of epochs. 
@@ -122,14 +122,15 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
             feature=feature.to(device=device)
             target=target.to(device=device)
             pred=model(feature)
-            loss_step=RMSPELoss(pred,target)
+            loss_fnc=RMSPELoss(eps=eps)
+            loss_step=loss_fnc(pred,target)
             #Update using optimizer according to loss of the batch
             optimizer.zero_grad()
             loss_step.backward()
             optimizer.step()            
             #Update the sum of sqaure (without grad) 
             with torch.no_grad():
-                sum_of_sqaure_train+=torch.square((pred-target)/(target+eps))
+                sum_of_sqaure_train+=torch.sum(torch.square((pred-target)/(target+eps)))
         #End of training loop for a batch######
         #######################################
         curr_time=time.time()
@@ -138,7 +139,7 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
         with torch.no_grad():    
             epoch_train_loss=torch.sqrt(sum_of_sqaure_train/total_data_count)
         #Calculate the validation loss of this epoch (without grad, citing another function)
-        epoch_val_loss=reg_validator_rmspe(model=model,val_loader=val_loader,eps=eps)
+        epoch_val_loss=reg_validator_rmspe(model=model,val_loader=val_loader,eps=eps,device=device)
         #Update the best validation loss and the epoch that it occurred     
         if ((epoch==1) or (epoch_val_loss<best_val_loss)): 
                 best_val_loss=epoch_val_loss
@@ -398,3 +399,33 @@ class frozen_diff_conv(nn.Module):
         # out_tensor=torch.cat((x,x_diff_pad),dim=1)
         
         return out_tensor
+
+class RV_RNN_conv(nn.Module):        
+    #Created 07/02/25 see RNN_with_frozen_conv.ipynb for documentation. 
+    def __init__(self,n_diff,rnn_num_layer,rnn_drop_out,rnn_act="tanh",proj_dim=32,rnn_hidden_size=32):
+        """
+        :param n_diff: Decides how many derivative features is wanted in the time series. 
+        :param rnn_num_layer: num_layer parameter for rnn. 
+        :param rnn_drop_out: dropout parameter for rnn. 
+        :param rnn_act: Defaulted to "tanh". Nonlinearity parameter for rnn. 
+        :param proj_dim: Defaulted to 32. Decided the dimension of projection before feeding into rnn. 
+        :param rnn_hidden_size: Defaulted to 32. The hidden_size parameter for rnn. 
+        """
+        super().__init__()
+        
+        self.frozen_conv=frozen_diff_conv(n_diff=n_diff)
+        self.linear_proj_input=nn.Linear(n_diff+1,proj_dim)
+        self.RNN_layer=nn.RNN(input_size=proj_dim,hidden_size=rnn_hidden_size,num_layers=rnn_num_layer,nonlinearity=rnn_act,batch_first=True,dropout=rnn_drop_out)
+        self.linear_post_rnn=nn.Linear(rnn_hidden_size,1)
+        self.frozen_list=["frozen_conv"] 
+        
+    def forward(self,x):
+        #First, unsqueese to add in one dimension in dim 1 as channel. This is needed for convolution. 
+        x=torch.unsqueeze(x,dim=1)
+        x=self.frozen_conv(x)
+        x=x.permute(0,2,1)
+        x=self.linear_proj_input(x)
+        x=self.RNN_layer(x)[0]
+        x=self.linear_post_rnn(x)
+        
+        return torch.sum(x,dim=1)
