@@ -38,9 +38,9 @@ class RMSPELoss(nn.Module):
     """
     RMSPE is not a premade pytorch loss function, the following creates the loss function so that it can be used in training, if needed. 
     
-    :param eps: Defaulted to 1e-10. The small value needed to avoid division by zero. 
+    :param eps: Defaulted to sys.float_info.epsilon. The small value needed to avoid division by zero. 
     """
-    def __init__(self,eps=1e-10): 
+    def __init__(self,eps=sys.float_info.epsilon): 
         super(RMSPELoss,self).__init__()
         self.eps=eps
         
@@ -52,9 +52,9 @@ class MSPELoss(nn.Module):
     """
     Mean squared percentage error is not a premade pytorch loss function, the following creates the loss function so that it can be used in training, if needed. 
     
-    :param eps: Defaulted to 1e-10. The small value needed to avoid division by zero. 
+    :param eps: Defaulted to sys.float_info.epsilon. The small value needed to avoid division by zero. 
     """
-    def __init__(self,eps=1e-10): 
+    def __init__(self,eps=sys.float_info.epsilon): 
         super(RMSPELoss,self).__init__()
         self.eps=eps
         
@@ -63,14 +63,14 @@ class MSPELoss(nn.Module):
     
 #Training loop###################################################################################################################################
      
-def reg_validator_rmspe(model, val_loader, device, eps=1e-10): 
+def reg_validator_rmspe(model, val_loader, device, eps=sys.float_info.epsilon): 
     #Created 06/25/25 In progress, testing needed. 
     """
     Returns the rmspe on the validation set for regression type training. 
     
     :param model: The model used. 
     :param val_loader: The loader that feeds the validation set. 
-    :param eps: Defaulted to 1e-10. The small value needed to avoid division by zero. 
+    :param eps: Defaulted to sys.float_info.epsilon. The small value needed to avoid division by zero. 
     :param device: The device used to calculate. 
     :return: The rmspe on the validation set. 
     """
@@ -88,7 +88,7 @@ def reg_validator_rmspe(model, val_loader, device, eps=1e-10):
         rmspe=torch.sqrt(sum_of_square/total_count)
     return rmspe
         
-def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=1e-10, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000): 
+def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=sys.float_info.epsilon, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000): 
     #Created 06/25/25 In progress, testing needed
     """
     A training loop for regression type training with rmspe loss function. 
@@ -101,7 +101,7 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
     :param ot_steps: Defaulted to 100. The number of epochs, where, if validation loss does not improve, the training will be stopped. Turn off this feature by setting it to None. 
     :param recall_best: Defaulted to True. Reloads the model to the best version according to validation loss. 
     :param device: GPU or CPU, choose your poison. 
-    :param eps: Defaulted to 1e-10. The small value needed to avoid division by zero. 
+    :param eps: Defaulted to sys.float_info.epsilon. The small value needed to avoid division by zero. 
     :param list_train_loss: Defaulted to None. If set to certain list, the function will append the training loss values to the end of the list in order of epochs. 
     :param list_val_loss: Defaulted to None. If set to certain list, the function will append the validation loss values to the end of the list in order of epochs. 
     :param report_interval: Defaulted to 20. The training loop will report once every report interval number of epochs. 
