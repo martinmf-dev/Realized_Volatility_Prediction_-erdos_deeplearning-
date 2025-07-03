@@ -38,9 +38,9 @@ class RMSPELoss(nn.Module):
     """
     RMSPE is not a premade pytorch loss function, the following creates the loss function so that it can be used in training, if needed. 
     
-    :param eps: Defaulted to sys.float_info.epsilon. The small value needed to avoid division by zero. 
+    :param eps: Defaulted to 0. The small value needed to avoid division by zero. 
     """
-    def __init__(self,eps=sys.float_info.epsilon): 
+    def __init__(self,eps=0): 
         super(RMSPELoss,self).__init__()
         self.eps=eps
         
@@ -52,9 +52,9 @@ class MSPELoss(nn.Module):
     """
     Mean squared percentage error is not a premade pytorch loss function, the following creates the loss function so that it can be used in training, if needed. 
     
-    :param eps: Defaulted to sys.float_info.epsilon. The small value needed to avoid division by zero. 
+    :param eps: Defaulted to 0. The small value needed to avoid division by zero. 
     """
-    def __init__(self,eps=sys.float_info.epsilon): 
+    def __init__(self,eps=0): 
         super(RMSPELoss,self).__init__()
         self.eps=eps
         
@@ -63,16 +63,16 @@ class MSPELoss(nn.Module):
     
 #Training loop###################################################################################################################################
      
-def reg_validator_rmspe(model, val_loader, device, eps=sys.float_info.epsilon,scaler=10000): 
+def reg_validator_rmspe(model, val_loader, device, eps=0,scaler=1): 
     #Created 06/25/25 In progress, testing needed. 
     """
     Returns the rmspe on the validation set for regression type training. 
     
     :param model: The model used. 
     :param val_loader: The loader that feeds the validation set. 
-    :param eps: Defaulted to sys.float_info.epsilon. The small value needed to avoid division by zero. 
+    :param eps: Defaulted to 0. The small value needed to avoid division by zero. 
     :param device: The device used to calculate. 
-    :param scaler: Defaulted to 10000. Scaling the input and output value so that they are not too small. 
+    :param scaler: Defaulted to 1. Scaling the input and output value so that they are not too small. 
     :return: The rmspe on the validation set. 
     """
     sum_of_square=0
@@ -91,7 +91,7 @@ def reg_validator_rmspe(model, val_loader, device, eps=sys.float_info.epsilon,sc
         rmspe=torch.sqrt(sum_of_square/total_count)
     return rmspe
         
-def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=sys.float_info.epsilon, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000, scaler=10000): 
+def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=0, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000, scaler=1): 
     #Created 06/25/25 In progress, testing needed
     """
     A training loop for regression type training with rmspe loss function. 
@@ -104,11 +104,11 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
     :param ot_steps: Defaulted to 100. The number of epochs, where, if validation loss does not improve, the training will be stopped. Turn off this feature by setting it to None. 
     :param recall_best: Defaulted to True. Reloads the model to the best version according to validation loss. 
     :param device: GPU or CPU, choose your poison. 
-    :param eps: Defaulted to sys.float_info.epsilon. The small value needed to avoid division by zero. 
+    :param eps: Defaulted to 0. The small value needed to avoid division by zero. 
     :param list_train_loss: Defaulted to None. If set to certain list, the function will append the training loss values to the end of the list in order of epochs. 
     :param list_val_loss: Defaulted to None. If set to certain list, the function will append the validation loss values to the end of the list in order of epochs. 
     :param report_interval: Defaulted to 20. The training loop will report once every report interval number of epochs. 
-    :param scaler: Defaulted to 10000. Scaling the input and output value so that they are not too small. 
+    :param scaler: Defaulted to 1. Scaling the input and output value so that they are not too small. This is helpful when debugging. 
     :return: The state dictionary of the best model, according to validation loss. 
     """
     total_data_count=len(train_loader.dataset)
@@ -389,6 +389,8 @@ class frozen_diff_conv(nn.Module):
         with torch.no_grad():
             self.frozen_conv.weight[:]=torch.tensor([[[-1.0,1.0]]])
             # self.frozen_conv.bias.zero_()
+        for param in self.frozen_conv.parameters():
+            param.requires_grad = False
 
     def forward(self,x):
         out_tensor=x
@@ -410,7 +412,7 @@ class frozen_diff_conv(nn.Module):
 
 class RV_RNN_conv(nn.Module):        
     #Created 07/02/25 see RNN_with_frozen_conv.ipynb for documentation. 
-    def __init__(self,n_diff,rnn_num_layer,rnn_drop_out,rnn_act="tanh",proj_dim=32,rnn_hidden_size=32):
+    def __init__(self,n_diff,rnn_num_layer,rnn_drop_out,rnn_act="tanh",proj_dim=32,rnn_hidden_size=32,input_scaler=10000):
         """
         :param n_diff: Decides how many derivative features is wanted in the time series. 
         :param rnn_num_layer: num_layer parameter for rnn. 
@@ -418,9 +420,11 @@ class RV_RNN_conv(nn.Module):
         :param rnn_act: Defaulted to "tanh". Nonlinearity parameter for rnn. 
         :param proj_dim: Defaulted to 32. Decided the dimension of projection before feeding into rnn. 
         :param rnn_hidden_size: Defaulted to 32. The hidden_size parameter for rnn. 
+        :param input_scaler: Defaulted to 10000. Set a scaling to input, a lot of timeseries values of our data are extremely close to zero. 
         """
         super().__init__()
         
+        self.input_scaler=input_scaler
         self.frozen_conv=frozen_diff_conv(n_diff=n_diff)
         self.linear_proj_input=nn.Linear(n_diff+1,proj_dim)
         self.RNN_layer=nn.RNN(input_size=proj_dim,hidden_size=rnn_hidden_size,num_layers=rnn_num_layer,nonlinearity=rnn_act,batch_first=True,dropout=rnn_drop_out)
@@ -428,7 +432,8 @@ class RV_RNN_conv(nn.Module):
         self.frozen_list=["frozen_conv"] 
         
     def forward(self,x):
-        #First, unsqueese to add in one dimension in dim 1 as channel. This is needed for convolution. 
+        #First, scale the input, and unsqueese to add in one dimension in dim 1 as channel. This is needed for convolution. 
+        x*=self.input_scaler
         x=torch.unsqueeze(x,dim=1)
         x=self.frozen_conv(x)
         x=x.permute(0,2,1)
@@ -436,4 +441,4 @@ class RV_RNN_conv(nn.Module):
         x=self.RNN_layer(x)[0]
         x=self.linear_post_rnn(x)
         
-        return torch.sum(x,dim=1)
+        return torch.sum(x,dim=1)/self.input_scaler
