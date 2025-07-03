@@ -149,8 +149,8 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
             #Update the sum of sqaure (without grad) 
             with torch.no_grad():
                 if norm_train_target: 
-                    train_target_mean=train_loader.feat_norm_dict[train_target][0]
-                    train_target_std=train_loader.feat_norm_dict[train_target][1]
+                    train_target_mean=train_loader.dataset.feat_norm_dict[train_target][0]
+                    train_target_std=train_loader.dataset.feat_norm_dict[train_target][1]
                     pred=pred*train_target_std+train_target_mean
                     target=target*train_target_std+train_target_mean
                 sum_of_sqaure_train+=torch.sum(torch.square((pred-target)/(target+eps)))
