@@ -63,16 +63,19 @@ class MSPELoss(nn.Module):
     
 #Training loop###################################################################################################################################
      
-def reg_validator_rmspe(model, val_loader, device, eps=0,scaler=1): 
+def reg_validator_rmspe(model, val_loader, device, eps=0,scaler=1, norm_train_target=False, train_target_mean=None, train_target_std=None): 
     #Created 06/25/25 In progress, testing needed. 
     """
-    Returns the rmspe on the validation set for regression type training. 
+    Returns the rmspe on the validation set for regression type training. As a reminder, one should not apply normalization to validation dataset's target, but one should apply the same normalization to the input features as the training dataset. 
     
     :param model: The model used. 
     :param val_loader: The loader that feeds the validation set. 
     :param eps: Defaulted to 0. The small value needed to avoid division by zero. 
     :param device: The device used to calculate. 
     :param scaler: Defaulted to 1. Scaling the input and output value so that they are not too small. 
+    :param norm_train_target: Defaulted to False. Set to true if the training targets feed by train loader are post normalized. 
+    :param train_target_mean: Defaulted to None. The mean of training target. 
+    :param train_target_std: Defaulted to None. The std of training std. 
     :return: The rmspe on the validation set. 
     """
     sum_of_square=0
@@ -87,11 +90,13 @@ def reg_validator_rmspe(model, val_loader, device, eps=0,scaler=1):
             feature=feature.to(device=device)
             target=target.to(device=device)
             pred=model(feature)
+            if norm_train_target:
+                pred=pred*train_target_std+train_target_mean
             sum_of_square+=torch.sum(torch.square((pred-target)/(target+eps)))
         rmspe=torch.sqrt(sum_of_square/total_count)
     return rmspe
         
-def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=0, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000, scaler=1): 
+def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=0, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000, scaler=1, norm_train_target=False, train_target="target"): 
     #Created 06/25/25 In progress, testing needed
     """
     A training loop for regression type training with rmspe loss function. 
@@ -109,6 +114,8 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
     :param list_val_loss: Defaulted to None. If set to certain list, the function will append the validation loss values to the end of the list in order of epochs. 
     :param report_interval: Defaulted to 20. The training loop will report once every report interval number of epochs. 
     :param scaler: Defaulted to 1. Scaling the input and output value so that they are not too small. This is helpful when debugging. 
+    :param norm_train_target: Defaulted to False. Set to true if the targets feed by train loader are post normalized, in which case, it is expected that the dataset of train loader should have access to feat_norm_dict object variables. 
+    :param train_target: Defaulted to "target". The string name of target in the train dataset input dataframe. 
     :return: The state dictionary of the best model, according to validation loss. 
     """
     total_data_count=len(train_loader.dataset)
@@ -135,9 +142,17 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
             #Update using optimizer according to loss of the batch
             optimizer.zero_grad()
             loss_step.backward()
-            optimizer.step()            
+            optimizer.step()
+            #Create variables for training dataset target mean and std 
+            train_target_mean=None
+            train_target_std=None            
             #Update the sum of sqaure (without grad) 
             with torch.no_grad():
+                if norm_train_target: 
+                    train_target_mean=train_loader.feat_norm_dict[train_target][0]
+                    train_target_std=train_loader.feat_norm_dict[train_target][1]
+                    pred=pred*train_target_std+train_target_mean
+                    target=target*train_target_std+train_target_mean
                 sum_of_sqaure_train+=torch.sum(torch.square((pred-target)/(target+eps)))
         #End of training loop for a batch######
         #######################################
@@ -147,7 +162,7 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
         with torch.no_grad():    
             epoch_train_loss=torch.sqrt(sum_of_sqaure_train/total_data_count)
         #Calculate the validation loss of this epoch (without grad, citing another function)
-        epoch_val_loss=reg_validator_rmspe(model=model,val_loader=val_loader,eps=eps,device=device,scaler=scaler)
+        epoch_val_loss=reg_validator_rmspe(model=model,val_loader=val_loader,eps=eps,device=device,scaler=scaler,norm_train_target=norm_train_target,train_target_mean=train_target_mean,train_target_std=train_target_std)
         #Update the best validation loss and the epoch that it occurred     
         if ((epoch==1) or (epoch_val_loss<best_val_loss)): 
                 best_val_loss=epoch_val_loss
@@ -189,7 +204,7 @@ class RVdataset(Dataset):
     # Modified 07/02/25 added get_row_id method and numeric ordering option
     #Modified 07/02/25 fixed issue with error when tab_feature is None
     #Modified 07/03/25 added normalization functionality 
-    def __init__(self, query_str=None, query_val_list=None, time_id_list=None, stock_id_list=None, tab_features=None, ts_features=None, target="target", df_ts_feat=None, df_tab_feat=None, df_target=None, numeric=False, norm_feature_list=None):
+    def __init__(self, query_str=None, query_val_list=None, time_id_list=None, stock_id_list=None, tab_features=None, ts_features=None, target="target", df_ts_feat=None, df_tab_feat=None, df_target=None, numeric=False, norm_feature_dict=None):
         """
         Object in subclass of Dataset. 
         
@@ -204,7 +219,7 @@ class RVdataset(Dataset):
         :param df_tab_feat: Defaulted to None. The dataframe containing the tabluar features, must have "row_id" as identifier for rows. When df_target is not None, one should make sure there is no target in the df_tab_feat. 
         :param df_target: Defaulted to None, in which case, target will be searched in df_tab_feat instead and expects df_tab_feat to contain target column to be used as target. The dataframe containing the target stored in the target column, must have "row_id" to be used as identifier. 
         :param numeric: Defaulted to False. When set to true, RVdataset returns rows ordered numerically first by stock_id, and then by time_id 
-        :param norm_feature_list: Defaulted to None. A list that indicate the features one want to normalize, this can include timeseries feature (normalized accross all sub_int_num and all row_id), tabular features, and the target. 
+        :param norm_feature_dict: Defaulted to None. A dict that indicate the features one want to normalize, this can include timeseries feature (normalized accross all sub_int_num and all row_id), tabular features, and the target. The dictionary should be in form of {string of feature name: (mean, std), ...}, mean and std "forced", but if automatic calulation of mean and std is desired, replace the tuple with None.
         
         Object attributes: 
         
@@ -356,16 +371,30 @@ class RVdataset(Dataset):
         self.row_ids = df_whole_pv_dna.index.to_list()
         
         #Create normalized data 
-        if not norm_feature_list is None: 
-            for feat in norm_feature_list: 
-                #Safe the mean and std for recovery purpose 
-                if feat == target: 
-                    self.target_mean=df_whole_pv_dna[feat].values.mean()
-                    self.target_std=df_whole_pv_dna[feat].values.std() 
-                    print("Target mean and std has been recorded.\n")
+        if not norm_feature_dict is None: 
+            #Create dictionary to save the mean and std
+            self.feat_norm_dict=dict()
+            for feat in list(norm_feature_dict.keys()): 
+                # #Safe the mean and std for recovery purpose 
+                # if feat == target: 
+                #     self.target_mean=df_whole_pv_dna[feat].values.mean()
+                #     self.target_std=df_whole_pv_dna[feat].values.std() 
+                #     print("Target mean and std has been recorded.\n")
                 #Create the normalized values 
-                df_whole_pv_dna[feat]=(df_whole_pv_dna[feat]-df_whole_pv_dna[feat].values.mean())/df_whole_pv_dna[feat].values.std()
-                print("Notice: "+feat+" has been normalized.\n")
+                #Initiate the mean and std values
+                feat_mean=None
+                feat_std=None 
+                #If forced feat mean and std is required  
+                if not norm_feature_dict[feat] is None: 
+                    feat_mean=norm_feature_dict[feat][0]
+                    feat_std=norm_feature_dict[feat][1]
+                else: 
+                    feat_mean=df_whole_pv_dna[feat].values.mean()
+                    feat_std=df_whole_pv_dna[feat].values.std()
+                df_whole_pv_dna[feat]=(df_whole_pv_dna[feat]-feat_mean)/feat_std
+                #Saving the mean and std
+                self.feat_norm_dict[feat]=(feat_mean,feat_std)
+                print("Notice: "+feat+" has been normalized.\nThe mean and std of this feature has been stored in feat_norm_dict")
         
         self.features=torch.tensor(df_whole_pv_dna.loc[:,all_feat].values.astype(np.float32),dtype=torch.float32)
         self.target=torch.tensor(df_whole_pv_dna.loc[:,target].values.astype(np.float32),dtype=torch.float32)
