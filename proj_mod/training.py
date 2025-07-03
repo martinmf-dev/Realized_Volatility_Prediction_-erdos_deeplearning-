@@ -188,7 +188,8 @@ class RVdataset(Dataset):
     #Modified 06/30/25, added query_str option. 
     # Modified 07/02/25 added get_row_id method and numeric ordering option
     #Modified 07/02/25 fixed issue with error when tab_feature is None
-    def __init__(self, query_str=None, query_val_list=None, time_id_list=None, stock_id_list=None, tab_features=None, ts_features=None, target="target", df_ts_feat=None, df_tab_feat=None, df_target=None, numeric=False):
+    #Modified 07/03/25 added normalization functionality 
+    def __init__(self, query_str=None, query_val_list=None, time_id_list=None, stock_id_list=None, tab_features=None, ts_features=None, target="target", df_ts_feat=None, df_tab_feat=None, df_target=None, numeric=False, norm_feature_list=None):
         """
         Object in subclass of Dataset. 
         
@@ -203,6 +204,7 @@ class RVdataset(Dataset):
         :param df_tab_feat: Defaulted to None. The dataframe containing the tabluar features, must have "row_id" as identifier for rows. When df_target is not None, one should make sure there is no target in the df_tab_feat. 
         :param df_target: Defaulted to None, in which case, target will be searched in df_tab_feat instead and expects df_tab_feat to contain target column to be used as target. The dataframe containing the target stored in the target column, must have "row_id" to be used as identifier. 
         :param numeric: Defaulted to False. When set to true, RVdataset returns rows ordered numerically first by stock_id, and then by time_id 
+        :param norm_feature_list: Defaulted to None. A list that indicate the features one want to normalize, this can include timeseries feature (normalized accross all sub_int_num and all row_id), tabular features, and the target. 
         
         Object attributes: 
         
@@ -353,6 +355,18 @@ class RVdataset(Dataset):
         # I added this to identify the returned item
         self.row_ids = df_whole_pv_dna.index.to_list()
         
+        #Create normalized data 
+        if not norm_feature_list is None: 
+            for feat in norm_feature_list: 
+                #Safe the mean and std for recovery purpose 
+                if feat == target: 
+                    self.target_mean=df_whole_pv_dna[feat].values.mean()
+                    self.target_std=df_whole_pv_dna[feat].values.std() 
+                    print("Target mean and std has been recorded.\n")
+                #Create the normalized values 
+                df_whole_pv_dna[feat]=(df_whole_pv_dna[feat]-df_whole_pv_dna[feat].values.mean())/df_whole_pv_dna[feat].values.std()
+                print("Notice: "+feat+" has been normalized.\n")
+        
         self.features=torch.tensor(df_whole_pv_dna.loc[:,all_feat].values.astype(np.float32),dtype=torch.float32)
         self.target=torch.tensor(df_whole_pv_dna.loc[:,target].values.astype(np.float32),dtype=torch.float32)
         self.len=df_whole_pv_dna.shape[0]
@@ -376,6 +390,7 @@ class RVdataset(Dataset):
 
 class frozen_diff_conv(nn.Module):
     #Created 07/01/25: See Frozen_conv_layer.ipynb for documentation. 
+    #Modified 07/03/25. Forcing require_grad = False. 
     def __init__(self,n_diff=1):
         """
         A frozen 1d convolution layer that creates "n th derivative" features for timeseries features. It expects input of tensor shape (N,Channel,Length) with N be any arbitrary positive integer, Channel == 1, and Length be any arbitrary integer. 
