@@ -456,7 +456,8 @@ class frozen_diff_conv(nn.Module):
 
 class RV_RNN_conv(nn.Module):        
     #Created 07/02/25 see RNN_with_frozen_conv.ipynb for documentation. 
-    def __init__(self,n_diff,rnn_num_layer,rnn_drop_out,rnn_act="tanh",proj_dim=32,rnn_hidden_size=32,input_scaler=10000):
+    #Modified 07/08/25 Added LSTM and GRU options
+    def __init__(self,n_diff,rnn_num_layer,rnn_drop_out,rnn_type="rnn",rnn_act="tanh",proj_dim=32,rnn_hidden_size=32,input_scaler=10000):
         """
         :param n_diff: Decides how many derivative features is wanted in the time series. 
         :param rnn_num_layer: num_layer parameter for rnn. 
@@ -465,13 +466,42 @@ class RV_RNN_conv(nn.Module):
         :param proj_dim: Defaulted to 32. Decided the dimension of projection before feeding into rnn. 
         :param rnn_hidden_size: Defaulted to 32. The hidden_size parameter for rnn. 
         :param input_scaler: Defaulted to 10000. Set a scaling to input, a lot of timeseries values of our data are extremely close to zero. 
+        :param rnn_type: 'rnn', 'lstm', or 'gru'
         """
         super().__init__()
         
         self.input_scaler=input_scaler
         self.frozen_conv=frozen_diff_conv(n_diff=n_diff)
         self.linear_proj_input=nn.Linear(n_diff+1,proj_dim)
-        self.RNN_layer=nn.RNN(input_size=proj_dim,hidden_size=rnn_hidden_size,num_layers=rnn_num_layer,nonlinearity=rnn_act,batch_first=True,dropout=rnn_drop_out)
+
+        self.rnn_type = rnn_type
+
+        if rnn_type == "rnn":
+            self.RNN_layer=nn.RNN(input_size=proj_dim,
+                                  hidden_size=rnn_hidden_size,
+                                  num_layers=rnn_num_layer,
+                                  nonlinearity=rnn_act,
+                                  batch_first=True,
+                                  dropout=rnn_drop_out)
+        elif rnn_type == "lstm":
+            if rnn_act is not None:
+                print(f"Warning: rnn_act='{rnn_act}' is ignored when using rnn_type='lstm'")
+            self.RNN_layer = nn.LSTM(input_size=proj_dim,
+                                     hidden_size=rnn_hidden_size,
+                                     num_layers=rnn_num_layer,
+                                     batch_first=True,
+                                     dropout=rnn_drop_out)
+        elif rnn_type == "gru":
+            if rnn_act is not None:
+                print(f"Warning: rnn_act='{rnn_act}' is ignored when using rnn_type='gru'")
+            self.RNN_layer = nn.GRU(input_size=proj_dim,
+                                    hidden_size=rnn_hidden_size,
+                                    num_layers=rnn_num_layer,
+                                    batch_first=True,
+                                    dropout=rnn_drop_out)
+        else:
+            raise ValueError(f"Unsupported rnn_type: {rnn_type}")
+        
         self.linear_post_rnn=nn.Linear(rnn_hidden_size,1)
         self.frozen_list=["frozen_conv"] 
         
@@ -486,3 +516,4 @@ class RV_RNN_conv(nn.Module):
         x=self.linear_post_rnn(x)
         
         return torch.sum(x,dim=1)/self.input_scaler
+    
