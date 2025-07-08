@@ -98,6 +98,7 @@ def reg_validator_rmspe(model, val_loader, device, eps=0,scaler=1, norm_train_ta
         
 def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=0, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000, scaler=1, norm_train_target=False, train_target="target"): 
     #Created 06/25/25 In progress, testing needed
+    #Modified 06/08/25 Denormalization was moved before loss calculation
     """
     A training loop for regression type training with rmspe loss function. 
     
@@ -136,23 +137,45 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
             #First, the standard training steps 
             feature=feature.to(device=device)
             target=target.to(device=device)
+
+            
+            #Moved here
+            #Create variables for training dataset target mean and std 
+            train_target_mean=None
+            train_target_std=None  
+            
+            #Moved here
+            if norm_train_target:           
+                train_target_mean=train_loader.dataset.feat_norm_dict[train_target][0]
+                train_target_std=train_loader.dataset.feat_norm_dict[train_target][1]
+
+            
             pred=model(feature)
+
+            
+            #Moved here
+            if norm_train_target:
+                pred=pred*train_target_std+train_target_mean
+                target=target*train_target_std+train_target_mean
+
+            
             loss_fnc=RMSPELoss(eps=eps)
             loss_step=loss_fnc(pred,target)
             #Update using optimizer according to loss of the batch
             optimizer.zero_grad()
             loss_step.backward()
             optimizer.step()
-            #Create variables for training dataset target mean and std 
-            train_target_mean=None
-            train_target_std=None            
+            # #Create variables for training dataset target mean and std 
+            # train_target_mean=None
+            # train_target_std=None            
             #Update the sum of sqaure (without grad) 
             with torch.no_grad():
-                if norm_train_target: 
-                    train_target_mean=train_loader.dataset.feat_norm_dict[train_target][0]
-                    train_target_std=train_loader.dataset.feat_norm_dict[train_target][1]
-                    pred=pred*train_target_std+train_target_mean
-                    target=target*train_target_std+train_target_mean
+                # This was moved before the loss calculation
+                # if norm_train_target: 
+                #     train_target_mean=train_loader.dataset.feat_norm_dict[train_target][0]
+                #     train_target_std=train_loader.dataset.feat_norm_dict[train_target][1]
+                #     pred=pred*train_target_std+train_target_mean
+                #     target=target*train_target_std+train_target_mean
                 sum_of_sqaure_train+=torch.sum(torch.square((pred-target)/(target+eps)))
         #End of training loop for a batch######
         #######################################
