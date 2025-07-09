@@ -114,7 +114,7 @@ def create_df_RV_by_row_id_stock(path):
     df_raw_book=pd.read_parquet(path) 
     df_raw_book=create_df_wap_logreturn(df_raw_book)
     df_rv_stock=create_value_for_df_by_group(df_raw_book,list_gp_cols=["time_id"],dict_funcs={"log_return":rv},dict_rename={"log_return":"RV"})
-    stock_id=path.split("=")[1]
+    stock_id=int(path.split("=")[1])
     df_rv_stock["row_id"]=df_rv_stock["time_id"].apply(lambda x:f"{stock_id}-{x}")
     # Adds a column for 'stock_id'
     df_rv_stock["stock_id"]= stock_id
