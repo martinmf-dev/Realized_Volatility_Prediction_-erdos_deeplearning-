@@ -332,6 +332,9 @@ class RVdataset(Dataset):
                 if not df_target is None: 
                     if df_tab_feat is None: 
                         df_tab_copy=df_target[df_target["time_id"].isin(time_id_list)]
+                        #Debug line print 
+                        # print(df_tab_copy)
+                        
                         tab_features=[]
                     else: 
                         col_diff=list(set(df_target.columns)-set(df_tab_copy.columns))+["row_id"]
