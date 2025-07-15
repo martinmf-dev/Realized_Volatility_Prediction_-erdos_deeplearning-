@@ -65,7 +65,6 @@ class MSPELoss(nn.Module):
      
 def reg_validator_rmspe(model, val_loader, device, eps=0,scaler=1, norm_train_target=False, train_target_mean=None, train_target_std=None): 
     #Created 06/25/25 In progress, testing needed. 
-    # Modified 07/14/25 To account for consec_id in the output of Dataset
     """
     Returns the rmspe on the validation set for regression type training. As a reminder, one should not apply normalization to validation dataset's target, but one should apply the same normalization to the input features as the training dataset. 
     
@@ -85,8 +84,7 @@ def reg_validator_rmspe(model, val_loader, device, eps=0,scaler=1, norm_train_ta
         print("There is nothing in the validation set, returning None")
         return None
     with torch.no_grad():
-        # The output of Dataset contains three elements now
-        for feature, target, consec_id in val_loader: 
+        for feature, target in val_loader: 
             feature*=scaler
             target*=scaler
             feature=feature.to(device=device)
@@ -101,7 +99,6 @@ def reg_validator_rmspe(model, val_loader, device, eps=0,scaler=1, norm_train_ta
 def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=0, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000, scaler=1, norm_train_target=False, train_target="target"): 
     #Created 06/25/25 In progress, testing needed
     #Modified 06/08/25 Denormalization was moved before loss calculation
-    # Modified 07/14/25 To account for consec_id in the output of Dataset
     """
     A training loop for regression type training with rmspe loss function. 
     
@@ -132,8 +129,7 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
         sum_of_sqaure_train=0
         #Training loop for a batch#############
         #######################################
-        # The output of Dataset contains three elements now
-        for feature, target, consec_id in train_loader: 
+        for feature, target in train_loader: 
             #Try to scale the values a little. 
             with torch.no_grad():
                 feature*=scaler
@@ -231,7 +227,6 @@ class RVdataset(Dataset):
     # Modified 07/02/25 added get_row_id method and numeric ordering option
     #Modified 07/02/25 fixed issue with error when tab_feature is None
     #Modified 07/03/25 added normalization functionality 
-    # Modified 07/14/25 added functionality to construct a consecutive id for the stock_ids. This is necessary when doing the embedding method
     #Modified 07/14/25 Added self.featureplace to help with spliting feature tensor. 
     def __init__(self, query_str=None, query_val_list=None, time_id_list=None, stock_id_list=None, tab_features=None, ts_features=None, target="target", df_ts_feat=None, df_tab_feat=None, df_target=None, numeric=False, norm_feature_dict=None):
         """
@@ -421,14 +416,6 @@ class RVdataset(Dataset):
         # I added this to identify the returned item
         self.row_ids = df_whole_pv_dna.index.to_list()
 
-        # 07/14/2025 Assigns a unique consecutive id to stocks, example: (0,2,3) gets assigned (0,1,2)
-        # YComment 1 07/14/2025: I do not think stock id should be done with ordinal property, one hot encoding is more appropriate. Alternatively, learned embedding with shuffled input can also be a choice. 
-        # YComment 2 07/14/2025: I think this should not be a seperate return value of this function, one should create then in the df_tab_feat, and include them in the self.feature return value, and access them through torch.split. See create_datasets for an example of this. 
-        stock_ids = [int(row_id.split('-')[0]) for row_id in df_whole_pv_dna.index]
-        unique_ids = sorted(set(stock_ids))
-        self.stock_id_map = {stock_id: consec_id for consec_id, stock_id in enumerate(unique_ids)}
-        self.consec_ids = torch.tensor([self.stock_id_map[stock_id] for stock_id in stock_ids], dtype=torch.long)
-        
         
         #Create normalized data 
         if not norm_feature_dict is None: 
@@ -477,18 +464,13 @@ class RVdataset(Dataset):
         del all_feat_len
     def __getitem__(self, index):
         # return super().__getitem__(index)
-        # Changed to return consec_id (the consecutive stock id)
-        return self.features[index], self.target[index], self.consec_ids[index]
+        return self.features[index], self.target[index]
     def __len__(self):
         return self.len
      # I added this to identify the returned item   
     def get_row_id(self, index):
         return self.row_ids[index] 
-    # This tells us the number of different stocks
-    # Ycomment 07/15/25: Just a reminder this is related to consecutive id, one should remember to remove this as well if consecutive id is removed. 
-    @property
-    def n_stocks(self):
-        return int(self.consec_ids.max().item()) + 1
+
         
 #NNmodel########################################################################################################################################
 
