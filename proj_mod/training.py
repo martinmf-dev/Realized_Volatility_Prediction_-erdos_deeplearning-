@@ -232,6 +232,7 @@ class RVdataset(Dataset):
     #Modified 07/02/25 fixed issue with error when tab_feature is None
     #Modified 07/03/25 added normalization functionality 
     # Modified 07/14/25 added functionality to construct a consecutive id for the stock_ids. This is necessary when doing the embedding method
+    #Modified 07/14/25 Added self.featureplace to help with spliting feature tensor. 
     def __init__(self, query_str=None, query_val_list=None, time_id_list=None, stock_id_list=None, tab_features=None, ts_features=None, target="target", df_ts_feat=None, df_tab_feat=None, df_target=None, numeric=False, norm_feature_dict=None):
         """
         Object in subclass of Dataset. 
@@ -255,6 +256,7 @@ class RVdataset(Dataset):
             self.target: The collection of targets as a torch tensor. 
             self.len: The length of the whole dataset object. 
             self.featuresplit: A dictionary in form of {feature name:length of feature, ...} to help distinguish different features in the feature torch tensor. The length of feature is included since some of the features are time series, while some are tabular. 
+            self.featureplace: A dictionaty in form of {feature name: (feature start index, feature end index + 1), ... }. This helps with retrieving values from tensor. 
             
         Object methods: 
 
@@ -279,8 +281,9 @@ class RVdataset(Dataset):
                         df_tab_copy=df_target
                         tab_features=[]
                     else: 
-                        df_tab_copy=pd.merge(df_tab_copy,df_target,on="row_id")
-                df_tab_copy.loc[:,"sub_int_num"]=np.nan 
+                        col_diff=list(set(df_target.columns)-set(df_tab_copy.columns))+["row_id"]
+                        df_tab_copy=pd.merge(df_tab_copy,df_target[col_diff],on="row_id")
+                df_tab_copy["sub_int_num"]=np.nan 
                 feat_tar=tab_features+[target]
                 df_tab_pv=df_tab_copy.pivot(index="row_id", columns="sub_int_num", values=feat_tar)
                 del df_tab_copy 
@@ -302,13 +305,15 @@ class RVdataset(Dataset):
                         df_tab_copy=df_target[df_target["stock_id"].isin(stock_id_list)]
                         tab_features=[]
                     else: 
-                        df_tab_copy=pd.merge(df_tab_copy,df_target[df_target["stock_id"].isin(stock_id_list)],on="row_id")
-                df_tab_copy.loc[:,"sub_int_num"]=np.nan 
+                        col_diff=list(set(df_target.columns)-set(df_tab_copy.columns))+["row_id"]
+                        df_tab_copy=pd.merge(df_tab_copy,df_target[df_target["stock_id"].isin(stock_id_list)][col_diff],on="row_id")
+                df_tab_copy["sub_int_num"]=np.nan 
                 feat_tar=tab_features+[target]
                 df_tab_pv=df_tab_copy.pivot(index="row_id", columns="sub_int_num", values=feat_tar)
                 del df_tab_copy 
                 #Create the full dataframe 
                 df_whole_pv_dna=pd.merge(df_ts_pv,df_tab_pv,on="row_id").dropna(axis="rows")
+                
                 del df_ts_pv
                 del df_tab_pv
                 del feat_tar
@@ -318,18 +323,34 @@ class RVdataset(Dataset):
                 if not df_ts_feat is None: 
                     df_ts_pv=df_ts_feat[df_ts_feat["time_id"].isin(time_id_list)].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
                     #Import, add in the target, and pivot tabular features 
+                
+                    #Debug line print
+                    # print(df_ts_pv)    
                 if not df_tab_feat is None: 
+                    #Debug line print 
+                    # print(df_tab_feat)
+                    
                     df_tab_copy=df_tab_feat[df_tab_feat["time_id"].isin(time_id_list)]
+                    
+                    #Debug line print
+                    # print(df_tab_copy) 
                 if not df_target is None: 
                     if df_tab_feat is None: 
                         df_tab_copy=df_target[df_target["time_id"].isin(time_id_list)]
                         tab_features=[]
                     else: 
-                        df_tab_copy=pd.merge(df_tab_copy,df_target[df_target["time_id"].isin(time_id_list)],on="row_id")
-                df_tab_copy.loc[:,"sub_int_num"]=np.nan 
+                        col_diff=list(set(df_target.columns)-set(df_tab_copy.columns))+["row_id"]
+                        df_tab_copy=pd.merge(df_tab_copy,df_target[df_target["time_id"].isin(time_id_list)][col_diff],on="row_id")
+                        
+                        #Debug line print
+                        # print(df_tab_copy)
+                df_tab_copy["sub_int_num"]=np.nan 
                 feat_tar=tab_features+[target]
                 df_tab_pv=df_tab_copy.pivot(index="row_id", columns="sub_int_num", values=feat_tar)
                 del df_tab_copy 
+                #Debug line print 
+                # print(df_tab_pv)
+            
                 #Create the full dataframe 
                 df_whole_pv_dna=pd.merge(df_ts_pv,df_tab_pv,on="row_id").dropna(axis="rows")
                 del df_ts_pv
@@ -349,8 +370,9 @@ class RVdataset(Dataset):
                         df_tab_copy=df_target[(df_target["time_id"].isin(time_id_list))&(df_target["stock_id"].isin(stock_id_list))]
                         tab_features=[]
                     else: 
-                        df_tab_copy=pd.merge(df_tab_copy,df_target[(df_target["time_id"].isin(time_id_list))&(df_target["stock_id"].isin(stock_id_list))],on="row_id")
-                df_tab_copy.loc[:,"sub_int_num"]=np.nan 
+                        col_diff=list(set(df_target.columns)-set(df_tab_copy.columns))+["row_id"]
+                        df_tab_copy=pd.merge(df_tab_copy,df_target[(df_target["time_id"].isin(time_id_list))&(df_target["stock_id"].isin(stock_id_list))][col_diff],on="row_id")
+                df_tab_copy["sub_int_num"]=np.nan 
                 feat_tar=tab_features+[target]
                 df_tab_pv=df_tab_copy.pivot(index="row_id", columns="sub_int_num", values=feat_tar)
                 del df_tab_copy 
@@ -372,8 +394,9 @@ class RVdataset(Dataset):
                     df_tab_copy=df_target.query(query_str)
                     tab_features=[]
                 else: 
-                    df_tab_copy=pd.merge(df_tab_copy,df_target.query(query_str),on="row_id")
-            df_tab_copy.loc[:,"sub_int_num"]=np.nan 
+                    col_diff=list(set(df_target.columns)-set(df_tab_copy.columns))+["row_id"]
+                    df_tab_copy=pd.merge(df_tab_copy,df_target.query(query_str)[col_diff],on="row_id")
+            df_tab_copy["sub_int_num"]=np.nan 
             feat_tar=tab_features+[target]
             df_tab_pv=df_tab_copy.pivot(index="row_id", columns="sub_int_num", values=feat_tar)
             del df_tab_copy 
@@ -399,6 +422,8 @@ class RVdataset(Dataset):
         self.row_ids = df_whole_pv_dna.index.to_list()
 
         # 07/14/2025 Assigns a unique consecutive id to stocks, example: (0,2,3) gets assigned (0,1,2)
+        # YComment 1 07/14/2025: I do not think stock id should be done with ordinal property, one hot encoding is more appropriate. 
+        # YComment 2 07/14/2025: I think this should not be a seperate return value of this function, one should create then in the df_tab_feat, and include them in the self.feature return value, and access them through torch.split. See create_datasets for an example of this. 
         stock_ids = [int(row_id.split('-')[0]) for row_id in df_whole_pv_dna.index]
         unique_ids = sorted(set(stock_ids))
         self.stock_id_map = {stock_id: consec_id for consec_id, stock_id in enumerate(unique_ids)}
@@ -430,6 +455,8 @@ class RVdataset(Dataset):
                 #Saving the mean and std
                 self.feat_norm_dict[feat]=(feat_mean,feat_std)
                 print("Notice: "+feat+" has been normalized.\nThe mean and std of this feature has been stored in feat_norm_dict")
+        #Debug line print
+        # print(df_whole_pv_dna)
         
         self.features=torch.tensor(df_whole_pv_dna.loc[:,all_feat].values.astype(np.float32),dtype=torch.float32)
         self.target=torch.tensor(df_whole_pv_dna.loc[:,target].values.astype(np.float32),dtype=torch.float32)
@@ -437,6 +464,13 @@ class RVdataset(Dataset):
         #The record of feature positions 
         all_feat_len=[df_whole_pv_dna[feat].shape[1] for feat in all_feat]
         self.featuresplit=dict(zip(all_feat,all_feat_len))
+        self.featureplace=dict()
+        feat_start=0
+        for feat in all_feat: 
+            #As a reminder, feat_end is one plus the index of the end of the feature 
+            feat_end=feat_start+self.featuresplit[feat]
+            self.featureplace[feat]=(feat_start,feat_end)
+            feat_start=feat_end
         #Clean up
         del df_whole_pv_dna
         del all_feat 
