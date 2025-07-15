@@ -422,7 +422,7 @@ class RVdataset(Dataset):
         self.row_ids = df_whole_pv_dna.index.to_list()
 
         # 07/14/2025 Assigns a unique consecutive id to stocks, example: (0,2,3) gets assigned (0,1,2)
-        # YComment 1 07/14/2025: I do not think stock id should be done with ordinal property, one hot encoding is more appropriate. 
+        # YComment 1 07/14/2025: I do not think stock id should be done with ordinal property, one hot encoding is more appropriate. Alternatively, learned embedding with shuffled input can also be a choice. 
         # YComment 2 07/14/2025: I think this should not be a seperate return value of this function, one should create then in the df_tab_feat, and include them in the self.feature return value, and access them through torch.split. See create_datasets for an example of this. 
         stock_ids = [int(row_id.split('-')[0]) for row_id in df_whole_pv_dna.index]
         unique_ids = sorted(set(stock_ids))
@@ -485,6 +485,7 @@ class RVdataset(Dataset):
     def get_row_id(self, index):
         return self.row_ids[index] 
     # This tells us the number of different stocks
+    # Ycomment 07/15/25: Just a reminder this is related to consecutive id, one should remember to remove this as well if consecutive id is removed. 
     @property
     def n_stocks(self):
         return int(self.consec_ids.max().item()) + 1
