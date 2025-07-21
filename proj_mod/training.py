@@ -157,6 +157,9 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
             if norm_train_target:
                 pred=pred*train_target_std+train_target_mean
                 target=target*train_target_std+train_target_mean
+            
+            #Debug print 
+            # print(pred)
 
             
             loss_fnc=RMSPELoss(eps=eps)
@@ -291,17 +294,17 @@ class RVdataset(Dataset):
             elif (time_id_list is None):
                 #Import and pivot time series features 
                 if not df_ts_feat is None: 
-                    df_ts_pv=df_ts_feat[df_ts_feat["stock_id"].isin(stock_id_list)].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
+                    df_ts_pv=df_ts_feat[df_ts_feat["stock_id"].astype(int).isin(stock_id_list)].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
                     #Import, add in the target, and pivot tabular features 
                 if not df_tab_feat is None: 
-                    df_tab_copy=df_tab_feat[df_tab_feat["stock_id"].isin(stock_id_list)]
+                    df_tab_copy=df_tab_feat[df_tab_feat["stock_id"].astype(int).isin(stock_id_list)]
                 if not df_target is None: 
                     if df_tab_feat is None: 
-                        df_tab_copy=df_target[df_target["stock_id"].isin(stock_id_list)]
+                        df_tab_copy=df_target[df_target["stock_id"].astype(int).isin(stock_id_list)]
                         tab_features=[]
                     else: 
                         col_diff=list(set(df_target.columns)-set(df_tab_copy.columns))+["row_id"]
-                        df_tab_copy=pd.merge(df_tab_copy,df_target[df_target["stock_id"].isin(stock_id_list)][col_diff],on="row_id")
+                        df_tab_copy=pd.merge(df_tab_copy,df_target[df_target["stock_id"].astype(int).isin(stock_id_list)][col_diff],on="row_id")
                 df_tab_copy["sub_int_num"]=np.nan 
                 feat_tar=tab_features+[target]
                 df_tab_pv=df_tab_copy.pivot(index="row_id", columns="sub_int_num", values=feat_tar)
@@ -316,7 +319,7 @@ class RVdataset(Dataset):
             elif (stock_id_list is None): 
                 #Import and pivot time series features 
                 if not df_ts_feat is None: 
-                    df_ts_pv=df_ts_feat[df_ts_feat["time_id"].isin(time_id_list)].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
+                    df_ts_pv=df_ts_feat[df_ts_feat["time_id"].astype(int).isin(time_id_list)].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
                     #Import, add in the target, and pivot tabular features 
                 
                     #Debug line print
@@ -325,20 +328,20 @@ class RVdataset(Dataset):
                     #Debug line print 
                     # print(df_tab_feat)
                     
-                    df_tab_copy=df_tab_feat[df_tab_feat["time_id"].isin(time_id_list)]
+                    df_tab_copy=df_tab_feat[df_tab_feat["time_id"].astype(int).isin(time_id_list)]
                     
                     #Debug line print
                     # print(df_tab_copy) 
                 if not df_target is None: 
                     if df_tab_feat is None: 
-                        df_tab_copy=df_target[df_target["time_id"].isin(time_id_list)]
+                        df_tab_copy=df_target[df_target["time_id"].astype(int).isin(time_id_list)]
                         #Debug line print 
                         # print(df_tab_copy)
                         
                         tab_features=[]
                     else: 
                         col_diff=list(set(df_target.columns)-set(df_tab_copy.columns))+["row_id"]
-                        df_tab_copy=pd.merge(df_tab_copy,df_target[df_target["time_id"].isin(time_id_list)][col_diff],on="row_id")
+                        df_tab_copy=pd.merge(df_tab_copy,df_target[df_target["time_id"].astype(int).isin(time_id_list)][col_diff],on="row_id")
                         
                         #Debug line print
                         # print(df_tab_copy)
@@ -359,17 +362,17 @@ class RVdataset(Dataset):
             else: 
                 #Import and pivot time series features 
                 if not df_ts_feat is None: 
-                    df_ts_pv=df_ts_feat[(df_ts_feat["time_id"].isin(time_id_list))&(df_ts_feat["stock_id"].isin(stock_id_list))].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
+                    df_ts_pv=df_ts_feat[(df_ts_feat["time_id"].astype(int).isin(time_id_list))&(df_ts_feat["stock_id"].astype(int).isin(stock_id_list))].pivot(index="row_id", columns="sub_int_num", values=ts_features).dropna(axis="columns")
                     #Import, add in the target, and pivot tabular features 
                 if not df_tab_feat is None: 
-                    df_tab_copy=df_tab_feat[(df_tab_feat["time_id"].isin(time_id_list))&(df_tab_feat["stock_id"].isin(stock_id_list))]
+                    df_tab_copy=df_tab_feat[(df_tab_feat["time_id"].astype(int).isin(time_id_list))&(df_tab_feat["stock_id"].astype(int).isin(stock_id_list))]
                 if not df_target is None:
                     if df_tab_feat is None: 
-                        df_tab_copy=df_target[(df_target["time_id"].isin(time_id_list))&(df_target["stock_id"].isin(stock_id_list))]
+                        df_tab_copy=df_target[(df_target["time_id"].astype(int).isin(time_id_list))&(df_target["stock_id"].astype(int).isin(stock_id_list))]
                         tab_features=[]
                     else: 
                         col_diff=list(set(df_target.columns)-set(df_tab_copy.columns))+["row_id"]
-                        df_tab_copy=pd.merge(df_tab_copy,df_target[(df_target["time_id"].isin(time_id_list))&(df_target["stock_id"].isin(stock_id_list))][col_diff],on="row_id")
+                        df_tab_copy=pd.merge(df_tab_copy,df_target[(df_target["time_id"].astype(int).isin(time_id_list))&(df_target["stock_id"].astype(int).isin(stock_id_list))][col_diff],on="row_id")
                 df_tab_copy["sub_int_num"]=np.nan 
                 feat_tar=tab_features+[target]
                 df_tab_pv=df_tab_copy.pivot(index="row_id", columns="sub_int_num", values=feat_tar)
@@ -477,6 +480,8 @@ class RVdataset(Dataset):
         
 #NNmodel########################################################################################################################################
 
+#Frozen diff creation convolution layer 
+
 class frozen_diff_conv(nn.Module):
     #Created 07/01/25: See Frozen_conv_layer.ipynb for documentation. 
     #Modified 07/03/25. Forcing require_grad = False. 
@@ -513,13 +518,15 @@ class frozen_diff_conv(nn.Module):
         # out_tensor=torch.cat((x,x_diff_pad),dim=1)
         
         return out_tensor
+    
+#Basic rnn layer
 
 class RV_RNN_conv(nn.Module):        
     #Created 07/02/25 see RNN_with_frozen_conv.ipynb for documentation. 
     #Modified 07/08/25 Added LSTM and GRU options
-    def __init__(self,n_diff,rnn_num_layer,rnn_drop_out,rnn_type="rnn",rnn_act="tanh",proj_dim=32,rnn_hidden_size=32,input_scaler=10000):
+    def __init__(self,rnn_num_layer,rnn_drop_out,n_diff = 2,rnn_type="rnn",rnn_act="tanh",proj_dim=32,rnn_hidden_size=32,input_scaler=10000):
         """
-        :param n_diff: Decides how many derivative features is wanted in the time series. 
+        :param n_diff: Defaulted to 2. Decides how many derivative features is wanted in the time series. 
         :param rnn_num_layer: num_layer parameter for rnn. 
         :param rnn_drop_out: dropout parameter for rnn. 
         :param rnn_act: Defaulted to "tanh". Nonlinearity parameter for rnn. 
@@ -576,4 +583,26 @@ class RV_RNN_conv(nn.Module):
         x=self.linear_post_rnn(x)
         
         return torch.sum(x,dim=1)/self.input_scaler
+
+# id adjusted rnn model by multiplication 
     
+class id_learned_embedding_adj_rnn_mtpl(nn.Module): 
+    def __init__(self, ts_place, id_place, rnn_model, id_hidden_model, id_input_num=112,emb_dim=8):
+        super().__init__()
+        self.id_embeder = nn.Embedding(num_embeddings=id_input_num, embedding_dim=emb_dim)
+        self.rnn_layer = rnn_model 
+        self.id_hidden_model = id_hidden_model
+        
+        self.ts_place=ts_place
+        self.id_place=id_place
+    def forward(self,x):
+        x_ts, emb_id = x[:,self.ts_place[0]:self.ts_place[1]], x[:,self.id_place[0]:self.id_place[1]].long() 
+        
+        rnn_output=self.rnn_layer(x_ts)
+        adj_value=self.id_hidden_model(self.id_embeder(emb_id)).squeeze(2)
+        
+        #Print shape for debugging 
+        # print("rnn shape", rnn_output.shape)
+        # print("adj shape", adj_value.shape)
+        
+        return rnn_output*adj_value
