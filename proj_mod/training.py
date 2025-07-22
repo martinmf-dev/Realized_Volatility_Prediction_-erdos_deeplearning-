@@ -231,9 +231,10 @@ class RVdataset(Dataset):
     #Modified 07/02/25 fixed issue with error when tab_feature is None
     #Modified 07/03/25 added normalization functionality 
     #Modified 07/14/25 Added self.featureplace to help with spliting feature tensor. 
+    #Modified 07/21/25 Now to function can auto cast strings into int for stock and time id 
     def __init__(self, query_str=None, query_val_list=None, time_id_list=None, stock_id_list=None, tab_features=None, ts_features=None, target="target", df_ts_feat=None, df_tab_feat=None, df_target=None, numeric=False, norm_feature_dict=None):
         """
-        Object in subclass of Dataset. 
+        Object in subclass of Dataset. It is ADVISED to cast stock and time id as int before running this function, especially when using query_str. 
         
         :param query_str: Defaulted to None, in which case, filter to dataset data will be applied through time_id_list and stock_id_list. Set to query string to apply filter to data included in dataset, when value is not None, the values of time_id_list and srock_id_list are practically ignored.         
         :param query_val_list: Defaulted to None. The list of variables that serves as reference for query string. This parameter is practically ignored when query_str is None. 
@@ -588,6 +589,16 @@ class RV_RNN_conv(nn.Module):
     
 class id_learned_embedding_adj_rnn_mtpl(nn.Module): 
     def __init__(self, ts_place, id_place, rnn_model, id_hidden_model, id_input_num=112,emb_dim=8):
+        """
+        A model that takes a categorical id and embed it to a higher dimensional vecotr space, then use the embedded vector as for adjustment on the base rnn models. 
+        
+        :param ts_place: A tuple indicating the place of timeseries input in the full input tensor. 
+        :param id_palce: A tuple indicating the place of category id input in the full input tensor. 
+        :param rnn_model: The base rnn_model to be adjusted. 
+        :param id_hidden_model: The hidden layers applied to the embedded (into higher dimensional vector space) categorical id. 
+        :param id_input_num: Defaulted to 112, the total number of stocks in our project. In general, this should be the total level of the concerned catregorical id. 
+        :param emb_dim: Defaulted to 8. The desired dimension of the vector space that one wants to embed the categorical id into. 
+        """
         super().__init__()
         self.id_embeder = nn.Embedding(num_embeddings=id_input_num, embedding_dim=emb_dim)
         self.rnn_layer = rnn_model 
