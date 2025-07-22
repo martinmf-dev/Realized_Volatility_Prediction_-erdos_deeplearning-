@@ -588,6 +588,7 @@ class RV_RNN_conv(nn.Module):
 # id adjusted rnn model by multiplication 
     
 class id_learned_embedding_adj_rnn_mtpl(nn.Module): 
+    #Created 07/21/25
     def __init__(self, ts_place, id_place, rnn_model, id_hidden_model, id_input_num=112,emb_dim=8):
         """
         A model that takes a categorical id and embed it to a higher dimensional vecotr space, then use the embedded vector as for adjustment on the base rnn models. 
