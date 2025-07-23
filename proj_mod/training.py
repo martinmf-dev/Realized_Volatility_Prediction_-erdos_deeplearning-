@@ -99,6 +99,7 @@ def reg_validator_rmspe(model, val_loader, device, eps=0,scaler=1, norm_train_ta
 def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=0, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000, scaler=1, norm_train_target=False, train_target="target"): 
     #Created 06/25/25 In progress, testing needed
     #Modified 06/08/25 Denormalization was moved before loss calculation
+    #Modified 07/23/25 Add printing best validation when updated 
     """
     A training loop for regression type training with rmspe loss function. 
     
@@ -194,6 +195,7 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
                 best_val_loss=epoch_val_loss
                 best_val_epoch=epoch
                 #Remember the best model (based on validation loss), store the state dictionary 
+                print("A new best validation loss at epoch ", best_val_epoch, " with validation loss of ", best_val_loss)
                 # if recall_best:
                 best_mode_state_dict=model.state_dict()
         #Update the list of train and validation loss, if requested 
@@ -618,3 +620,33 @@ class id_learned_embedding_adj_rnn_mtpl(nn.Module):
         # print("adj shape", adj_value.shape)
         
         return rnn_output*adj_value
+    
+# id adjusted rnn model with attention 
+
+class id_learned_embedding_attend_rnn(nn.Module): 
+    #Created 07/23/25
+    def __init__(self, ts_place, id_place, rnn_model, id_hidden_model, id_input_num=112, id_emb_dim=8, att_emb_dim=32,att_num_head=1): 
+        super().__init__()
+        self.id_embeder = nn.Embedding(num_embeddings=id_input_num, embedding_dim=id_emb_dim)
+        self.rnn_layer = rnn_model 
+        self.id_hidden_model = id_hidden_model
+        self.attention=nn.MultiheadAttention(embed_dim=att_emb_dim,num_heads=att_num_head,dropout=0.1,batch_first=True)
+        self.post_rnn_linear=nn.Linear(in_features=1,out_features=32)
+        self.final_linear=nn.Linear(in_features=att_emb_dim,out_features=1)
+        
+        self.ts_place=ts_place
+        self.id_place=id_place
+    def forward(self,x): 
+        x_ts, emb_id = x[:,self.ts_place[0]:self.ts_place[1]], x[:,self.id_place[0]:self.id_place[1]].long() 
+        
+        rnn_output=self.post_rnn_linear(self.rnn_layer(x_ts).unsqueeze(2))
+        adj_output=self.id_hidden_model(self.id_embeder(emb_id))
+        #debug print dim
+        # print("rnn and adj ready")
+        # print("rnn", rnn_output.shape)
+        # print("adj", adj_output.shape)
+        att_output,_=self.attention(query=adj_output,key=rnn_output,value=rnn_output) 
+        # print("att ready")
+        output=self.final_linear(att_output)
+        
+        return torch.sum(output,dim=1)
