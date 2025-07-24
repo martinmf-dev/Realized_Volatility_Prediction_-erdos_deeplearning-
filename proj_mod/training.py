@@ -626,6 +626,18 @@ class id_learned_embedding_adj_rnn_mtpl(nn.Module):
 class id_learned_embedding_attend_rnn(nn.Module): 
     #Created 07/23/25
     def __init__(self, ts_place, id_place, rnn_model, id_hidden_model, id_input_num=112, id_emb_dim=8, att_emb_dim=32,att_num_head=1): 
+        """
+        A model that takes rnn output and simply have it pay (cross) attention to the categorical id. 
+        
+        :param ts_place: A tuple indicating the place of timeseries input in the full input tensor. 
+        :param id_palce: A tuple indicating the place of category id input in the full input tensor. 
+        :param rnn_model: The base rnn_model to be adjusted. 
+        :param id_hidden_model: The hidden layers applied to the embedded (into higher dimensional vector space) categorical id. 
+        :param id_input_num: Defaulted to 112, the total number of stocks in our project. In general, this should be the total level of the concerned catregorical id. 
+        :param id_emb_dim: Defaulted to 8. The desired dimension of the vector space that one wants to embed the categorical id into. 
+        :param att_emb_dim: Defaulted to 32. The emb_dim used by the cross attention layer. 
+        :param att_num_head: Defaulted to 1. The num_heads used by the cross attention layer. 
+        """
         super().__init__()
         self.id_embeder = nn.Embedding(num_embeddings=id_input_num, embedding_dim=id_emb_dim)
         self.rnn_layer = rnn_model 
@@ -650,3 +662,128 @@ class id_learned_embedding_attend_rnn(nn.Module):
         output=self.final_linear(att_output)
         
         return torch.sum(output,dim=1)
+    
+# Positional embedding by cross attention 
+
+class pos_emb_cross_attn(nn.Module): 
+    #Created 07/24/25 
+    def __init__(self,length,ts_dim,emb_dim,dropout,num_heads): 
+        """
+        Takes time series x of shape (Batch size, length, ts_dim), and produces layernorm(x+ cross_attn(q=x,k=position,v=postion)) that has dimension emb_dim in each time step. 
+        
+        :param length: The length of each timeseries. 
+        :param ts_dim: The dimension of each time step. 
+        :param emb_dim: The dimension to which one wants to project each time step. 
+        :param dropout: The dropout rate used by the cross attention layer. 
+        :param num_heads: The num_heads used by cross attention layer. 
+        :return: layernorm(x+ cross_attn(q=x,k=position,v=postion)). 
+        """
+        super().__init__()
+        self.length=length 
+        self.ts_proj=nn.Linear(in_features=ts_dim,out_features=emb_dim)
+        self.pos_emb=nn.Embedding(num_embeddings=length,embedding_dim=emb_dim) # 60 is the length of our (default) timeseries. 
+        self.pos_attn=nn.MultiheadAttention(embed_dim=emb_dim,batch_first=True,dropout=dropout,num_heads=num_heads)
+        self.pos_norm=nn.LayerNorm(emb_dim) 
+        
+    def forward(self,x):
+        batch_num=x.shape[0]
+        x=self.ts_proj(x)
+        pos_id=torch.arange(self.length).expand(batch_num,60).to(device=x.device)
+        pos_emb=self.pos_emb(pos_id)
+        pos,_=self.pos_attn(x,pos_emb,pos_emb)
+        x=x+pos
+        x=self.pos_norm(x)
+        
+        return x
+        
+# Encoder for timeseries 
+
+class ts_encoder(nn.Module): 
+    #Created 07/24/25 
+    def __init__(self,ts_dim,dropout,num_heads,feedforward_layer_list): 
+        """
+        An encoder (self attention) layer designed for timeseries. Takes timeseries of shape (batch size, length, ts_dim). 
+        
+        :param ts_dim: The dimention of each time step. 
+        :param dropout: The drop out rate of the self attention layer. 
+        :param num_heads: The num_heads used by the self attention layer. 
+        :param feedforward_layers_list: The list of feed forward layer post the self attention layer. Must take tensor in shape of (batch size, length, ts_dim). For our purpose, it is also advices to have it output the same shape. 
+        :return: A tensor of shape (batch size, length, step dimension of feedforward_layers)
+        """
+        super().__init__()
+        self.encoder_attn=nn.MultiheadAttention(embed_dim=ts_dim,num_heads=num_heads,dropout=dropout,batch_first=True)
+        self.encoder_norm1=nn.LayerNorm(ts_dim)
+        # ff_list=[]
+        # current_dim=ts_dim
+        # for i in range(1,feedforward_layer_num+1): 
+        #     if i==feedforward_layer_num: 
+        #         ff_list.append(nn.Linear(in_features=feedforward_dim,out_features=ts_dim))
+        #     elif i==1: 
+        #         ff_list.append(nn.Linear(in_features=ts_dim,out_features=feedforward_dim))
+        #         ff_list.append(nn.ReLU())
+        #     else: 
+        #         ff_list.append(nn.Linear(in_features=feedforward_dim,out_features=feedforward_dim))
+        #     # current
+        self.encoder_feedforward=nn.ModuleList(feedforward_layer_list)
+        self.encoder_norm2=nn.LayerNorm(ts_dim)
+        
+    def forward(self,x):
+        attn,_=self.encoder_attn(x,x,x)
+        x=self.encoder_norm1(x+attn)
+        attn=x
+        for layer in self.encoder_feedforward: 
+            attn=layer(attn)
+        # attn=self.encoder_feedforward(x)
+        
+        return self.encoder_norm2(x+attn)
+        
+# Encoder ensemble 
+
+class encoder_ensemble(nn.Module): 
+    #Created 07/24/25 
+    def __init__(self,pos_emb_model,output_feedforward,encoder_dropout,encoder_feedforward_list,n_diff=2,encoder_layer_num=4,input_scaler=10000,ts_emb_dim=32,encoder_num_heads=4): 
+        """
+        The ensemble of compoenents to produce a whole transformer (encoder based only) model for timeseries to predict the target. 
+        
+        :param pos_emb_model: The postion embedding model. Expected to be created through pos_emb_cross_attn(). 
+        :param output_feedforward: The feed forward layers right before the output. Expected to take tensors of out put shape of the encoder_model and produce a tensor of shape (batch size, length, 1). 
+        :param n_diff: Defaulted to 2. The number of dirivatives to be created for the timeseries. 
+        :param encoder_layer_num: Defaulted to 4. The number of layers of encoder to be applied in a row. 
+        :param input_scaler: Defaulted to 10000: The input scaler to make the input values more reasonably sized. 
+        :param encoder_dropout: The dropout rate of encoder. 
+        :param encoder_feedforward_list: The feedforward_layer_list used by the encoder. 
+        :param encoder_num_heads: The num_heads used by the encoder. 
+        :param ts_emb_dim: Defaulted to 32. The dimension of each time step of the post pos_emb_model timeseries. 
+        :param device: The device used. 
+        """
+        super().__init__() 
+        #Frozen convolution 
+        # self.ts_proj=nn.Linear(in_features=n_diff+1,out_features=ts_emb_dim)
+        self.frozen_conv=frozen_diff_conv(n_diff=n_diff)
+        #Position embedding 
+        self.pos_emb=pos_emb_model
+        #Encoder layers
+        self.encoder_layers=nn.ModuleList([
+            ts_encoder(ts_dim=ts_emb_dim,num_heads=encoder_num_heads,dropout=encoder_dropout,feedforward_layer_list=encoder_feedforward_list)
+            for _ in range(encoder_layer_num)
+        ])
+        #Output feedforward
+        self.output_feedforward=output_feedforward 
+        
+        #Scaler 
+        self.input_scaler=input_scaler
+        
+    def forward(self,x):
+        #Adjust input 
+        x*=self.input_scaler
+        x=torch.unsqueeze(x,dim=1)
+        x=self.frozen_conv(x)
+        x=x.permute(0,2,1) 
+        #Position embedding 
+        x=self.pos_emb(x)
+        #Run though the encoder layers 
+        for layer in self.encoder_layers: 
+            x=layer(x)
+        #Output feedforward
+        x=self.output_feedforward(x)
+        return torch.sum(x,dim=1)/self.input_scaler
