@@ -667,7 +667,7 @@ class id_learned_embedding_attend_rnn(nn.Module):
 
 class pos_emb_cross_attn(nn.Module): 
     #Created 07/24/25 
-    def __init__(self,length,ts_dim,emb_dim,dropout,num_heads): 
+    def __init__(self,length,ts_dim,emb_dim,dropout,num_heads,keep_mag=False): 
         """
         Takes time series x of shape (Batch size, length, ts_dim), and produces layernorm(x+ cross_attn(q=x,k=position,v=postion)) that has dimension emb_dim in each time step. 
         
@@ -676,6 +676,7 @@ class pos_emb_cross_attn(nn.Module):
         :param emb_dim: The dimension to which one wants to project each time step. 
         :param dropout: The dropout rate used by the cross attention layer. 
         :param num_heads: The num_heads used by cross attention layer. 
+        :param keep_mag: Defaulted to False. Decides if adding input onto the output (then devide by 2) before returning, adding it would keep more impact of the magnitude signal of the input. 
         :return: layernorm(x+ cross_attn(q=x,k=position,v=postion)). 
         """
         super().__init__()
@@ -684,6 +685,7 @@ class pos_emb_cross_attn(nn.Module):
         self.pos_emb=nn.Embedding(num_embeddings=length,embedding_dim=emb_dim) # 60 is the length of our (default) timeseries. 
         self.pos_attn=nn.MultiheadAttention(embed_dim=emb_dim,batch_first=True,dropout=dropout,num_heads=num_heads)
         self.pos_norm=nn.LayerNorm(emb_dim) 
+        self.keep_mag=keep_mag
         
     def forward(self,x):
         batch_num=x.shape[0]
@@ -692,7 +694,10 @@ class pos_emb_cross_attn(nn.Module):
         pos_emb=self.pos_emb(pos_id)
         pos,_=self.pos_attn(x,pos_emb,pos_emb)
         x=x+pos
-        x=self.pos_norm(x)
+        if self.keep_mag: 
+            x=(x+self.pos_norm(x))/2
+        else: 
+            x=self.pos_norm(x)
         
         return x
         
@@ -700,7 +705,7 @@ class pos_emb_cross_attn(nn.Module):
 
 class ts_encoder(nn.Module): 
     #Created 07/24/25 
-    def __init__(self,ts_dim,dropout,num_heads,feedforward_layer_list): 
+    def __init__(self,ts_dim,dropout,num_heads,feedforward_layer_list,keep_mag=False): 
         """
         An encoder (self attention) layer designed for timeseries. Takes timeseries of shape (batch size, length, ts_dim). 
         
@@ -708,6 +713,7 @@ class ts_encoder(nn.Module):
         :param dropout: The drop out rate of the self attention layer. 
         :param num_heads: The num_heads used by the self attention layer. 
         :param feedforward_layers_list: The list of feed forward layer post the self attention layer. Must take tensor in shape of (batch size, length, ts_dim). For our purpose, it is also advices to have it output the same shape. 
+        :param keep_mag: Defaulted to False. If set to true, the layers will work to preserve more magnitude signal of the input. 
         :return: A tensor of shape (batch size, length, step dimension of feedforward_layers)
         """
         super().__init__()
@@ -726,22 +732,28 @@ class ts_encoder(nn.Module):
         #     # current
         self.encoder_feedforward=nn.ModuleList(feedforward_layer_list)
         self.encoder_norm2=nn.LayerNorm(ts_dim)
+        self.keep_mag=keep_mag
         
     def forward(self,x):
         attn,_=self.encoder_attn(x,x,x)
-        x=self.encoder_norm1(x+attn)
+        if self.keep_mag: 
+            x=(x+self.encoder_norm1(x+attn))/2
+        else: 
+            x=self.encoder_norm1(x+attn)
         attn=x
         for layer in self.encoder_feedforward: 
             attn=layer(attn)
         # attn=self.encoder_feedforward(x)
-        
-        return self.encoder_norm2(x+attn)
+        if self.keep_mag: 
+            return (x+attn+self.encoder_norm2(x+attn))/2
+        else:
+            return self.encoder_norm2(x+attn)
         
 # Encoder ensemble 
 
 class encoder_ensemble(nn.Module): 
     #Created 07/24/25 
-    def __init__(self,pos_emb_model,output_feedforward,encoder_dropout,encoder_feedforward_list,n_diff=2,encoder_layer_num=4,input_scaler=10000,ts_emb_dim=32,encoder_num_heads=4): 
+    def __init__(self,pos_emb_model,output_feedforward,encoder_dropout,encoder_feedforward_list,n_diff=2,encoder_layer_num=4,input_scaler=10000,ts_emb_dim=32,encoder_num_heads=4,encoder_keep_mag=False): 
         """
         The ensemble of compoenents to produce a whole transformer (encoder based only) model for timeseries to predict the target. 
         
@@ -755,6 +767,7 @@ class encoder_ensemble(nn.Module):
         :param encoder_num_heads: The num_heads used by the encoder. 
         :param ts_emb_dim: Defaulted to 32. The dimension of each time step of the post pos_emb_model timeseries. 
         :param device: The device used. 
+        :param encoder_keep_mag: Defaulted to False, the keep_mag used by ts_encoder(). 
         """
         super().__init__() 
         #Frozen convolution 
@@ -764,7 +777,7 @@ class encoder_ensemble(nn.Module):
         self.pos_emb=pos_emb_model
         #Encoder layers
         self.encoder_layers=nn.ModuleList([
-            ts_encoder(ts_dim=ts_emb_dim,num_heads=encoder_num_heads,dropout=encoder_dropout,feedforward_layer_list=encoder_feedforward_list)
+            ts_encoder(ts_dim=ts_emb_dim,num_heads=encoder_num_heads,dropout=encoder_dropout,feedforward_layer_list=encoder_feedforward_list,keep_mag=encoder_keep_mag)
             for _ in range(encoder_layer_num)
         ])
         #Output feedforward
