@@ -100,6 +100,7 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
     #Created 06/25/25 In progress, testing needed
     #Modified 06/08/25 Denormalization was moved before loss calculation
     #Modified 07/23/25 Add printing best validation when updated 
+    #Modified 07/25/25 Add scheduler intake 
     """
     A training loop for regression type training with rmspe loss function. 
     
