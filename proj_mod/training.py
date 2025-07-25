@@ -199,23 +199,23 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
                 print("A new best validation loss at epoch ", best_val_epoch, " with validation loss of ", best_val_loss,".")
                 # if recall_best:
                 best_mode_state_dict=model.state_dict()
+        #Print report according to report interval
+        if ((epoch==1) or (epoch%report_interval==0)):
+            print("At ", time_cost, " epoch ",epoch, "has training loss ", epoch_train_loss, " and validation loss ", epoch_val_loss,".\n")
         #Scheduler step 
         if not scheduler is None: 
             old_lr = optimizer.param_groups[0]['lr']
             scheduler.step(epoch_val_loss) 
             new_lr = optimizer.param_groups[0]['lr']
             if old_lr!=new_lr: 
-                print(f"Learning rate has been updated from {old_lr} to {new_lr}, reloading previous best model weights ...\n")
+                print(f"At epoch {epoch}, learning rate has been updated from {old_lr} to {new_lr}, reloading previous best model weights from epoch {best_val_epoch} ...\n")
                 model.load_state_dict(best_mode_state_dict)
-                print("Previous best model weights reloaded.")
+                print("Previous best model weights reloaded, training continues ... ")
         #Update the list of train and validation loss, if requested 
         if list_train_loss!= None: 
             list_train_loss.append(epoch_train_loss)
         if list_val_loss!=None: 
             list_val_loss.append(epoch_val_loss)
-        #Print report according to report interval
-        if ((epoch==1) or (epoch%report_interval==0)):
-            print("At ", time_cost, " epoch ",epoch, "has training loss ", epoch_train_loss, " and validation loss ", epoch_val_loss,".\n")
         #If a over training stopper is requested and the model is over trained based on non-improving validation loss for a certain number of epochs, we stop the training. 
         if ((ot_steps!=None) and (epoch-best_val_epoch>=ot_steps)): 
             print("The validation loss has not improved for ",ot_steps, " epochs. Stopping current training loop.\n")
