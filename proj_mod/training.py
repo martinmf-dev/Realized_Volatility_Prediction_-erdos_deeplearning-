@@ -96,7 +96,7 @@ def reg_validator_rmspe(model, val_loader, device, eps=0,scaler=1, norm_train_ta
         rmspe=torch.sqrt(sum_of_square/total_count)
     return rmspe
         
-def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=0, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000, scaler=1, norm_train_target=False, train_target="target"): 
+def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=0, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000, scaler=1, norm_train_target=False, train_target="target",scheduler=None): 
     #Created 06/25/25 In progress, testing needed
     #Modified 06/08/25 Denormalization was moved before loss calculation
     #Modified 07/23/25 Add printing best validation when updated 
@@ -104,7 +104,7 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
     A training loop for regression type training with rmspe loss function. 
     
     :param n_epochs: Defaulted to 1000. Total number of epochs. 
-    :param optimizer: Optimizer wanted. 
+    :param optimizer: Optimizer wanted. It is recommended to start the lr at 1e-3.
     :param model: Model used. 
     :param train_loader: Training loader used. 
     :param val_loader: Validation loader used. 
@@ -118,6 +118,7 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
     :param scaler: Defaulted to 1. Scaling the input and output value so that they are not too small. This is helpful when debugging. 
     :param norm_train_target: Defaulted to False. Set to true if the targets feed by train loader are post normalized, in which case, it is expected that the dataset of train loader should have access to feat_norm_dict object variables. 
     :param train_target: Defaulted to "target". The string name of target in the train dataset input dataframe. 
+    :param scheduler: Defaulted to None. The ReduceLROnPlateau() scheduler used that is initialized outside of the training loop. The recommended scheduler is ReduceLROnPlateau(optimizer,mode='min',factor=0.5,patience=floor(ot_step/4) or floor(ot_step/2),min_lr=bigger or equal to 1e-7). 
     :return: The state dictionary of the best model, according to validation loss. 
     """
     total_data_count=len(train_loader.dataset)
@@ -195,9 +196,18 @@ def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, 
                 best_val_loss=epoch_val_loss
                 best_val_epoch=epoch
                 #Remember the best model (based on validation loss), store the state dictionary 
-                print("A new best validation loss at epoch ", best_val_epoch, " with validation loss of ", best_val_loss)
+                print("A new best validation loss at epoch ", best_val_epoch, " with validation loss of ", best_val_loss,".")
                 # if recall_best:
                 best_mode_state_dict=model.state_dict()
+        #Scheduler step 
+        if not scheduler is None: 
+            old_lr = optimizer.param_groups[0]['lr']
+            scheduler.step(epoch_val_loss) 
+            new_lr = optimizer.param_groups[0]['lr']
+            if old_lr!=new_lr: 
+                print(f"Learning rate has been updated from {old_lr} to {new_lr}, reloading previous best model weights ...\n")
+                model.load_state_dict(best_mode_state_dict)
+                print("Previous best model weights reloaded.")
         #Update the list of train and validation loss, if requested 
         if list_train_loss!= None: 
             list_train_loss.append(epoch_train_loss)
