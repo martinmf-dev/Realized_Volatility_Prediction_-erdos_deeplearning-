@@ -20,7 +20,7 @@ def training_plots(results_dict, titles=None, fig_width=15, subplot_aspect_ratio
 
     if titles is None:
         titles = [
-            f"{rnn.upper()} | h0: {h0} | min val loss: {torch.stack(results_dict[(rnn, h0)]['val_loss']).min().item():.4f}" 
+            f"{rnn} |  {h0} | min val loss: {torch.stack(results_dict[(rnn, h0)]['val_loss']).min().item():.4f}" 
             for (rnn, h0) in results_dict]
     
     n = len(keys)
