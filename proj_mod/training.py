@@ -700,8 +700,9 @@ class pos_emb_cross_attn(nn.Module):
         
     def forward(self,x):
         batch_num=x.shape[0]
+        length=x.shape[1]
         x=self.ts_proj(x)
-        pos_id=torch.arange(self.length).expand(batch_num,60).to(device=x.device)
+        pos_id=torch.arange(length).expand(batch_num,length).to(device=x.device)
         pos_emb=self.pos_emb(pos_id)
         pos,_=self.pos_attn(x,pos_emb,pos_emb)
         x=x+pos
@@ -760,6 +761,38 @@ class ts_encoder(nn.Module):
         else:
             return self.encoder_norm2(x+attn)
         
+# Sequence creating decoder 
+
+class ts_decoder(nn.Module): 
+    #Created 07/29/25
+    def __init__(self,ts_dim,num_heads,dropout,decoder_feedforward_list,keep_mag=False): 
+        super().__init__()
+        self.decoder_self_attn=nn.MultiheadAttention(embed_dim=ts_dim,num_heads=num_heads,dropout=dropout,batch_first=True)
+        self.decoder_norm1=nn.LayerNorm(ts_dim)
+        self.decoder_cross_attn=nn.MultiheadAttention(embed_dim=ts_dim,num_heads=num_heads,dropout=dropout,batch_first=True)
+        self.decoder_norm2=nn.LayerNorm(ts_dim)
+        self.decoder_feedforward=nn.ModuleList(decoder_feedforward_list)
+        # self.dropout=nn.Dropout(dropout)
+        
+        self.keep_mag=keep_mag
+    
+    def forward(self,ground_target,encoder_memory,ground_target_mask=None): 
+        self_attn,_=self.decoder_self_attn(ground_target,ground_target,ground_target,attn_mask=ground_target_mask) 
+        if self.keep_mag: 
+            target=(target+self_attn+self.decoder_norm1(target+self_attn))/2 
+        else: 
+            target=self.decoder_norm1(target+self_attn)
+        cross_attn,_=self.decoder_cross_attn(target,encoder_memory,encoder_memory) 
+        if self.keep_mag: 
+            target=(target+cross_attn+self.decoder_norm2(target+cross_attn))/2 
+        else: 
+            target=self.decoder_norm2(target+cross_attn)
+        ground_target=target
+        for layer in self.decoder_feedforward: 
+            target=layer(target)
+        return ground_target+target
+            
+        
 # Encoder ensemble 
 
 class encoder_ensemble(nn.Module): 
@@ -811,3 +844,73 @@ class encoder_ensemble(nn.Module):
         #Output feedforward
         x=self.output_feedforward(x)
         return torch.sum(x,dim=1)/self.input_scaler
+    
+# Encoder, decoder, together (no teacher forcing, could not figure out how to implement it in our case) 
+
+class encoder_decoder_autoregression(nn.Module): 
+    def __init__(self,
+                 pos_emb_model,
+                 output_feedforward,
+                 encoder_dropout,
+                 decoder_dropout,
+                 encoder_feedforward_list,
+                 decoder_feedforward_list,
+                 n_diff=2,
+                 encoder_layer_num=2,
+                 decoder_layer_num=2,
+                 input_scaler=10000,
+                 ts_emb_dim=32,
+                 encoder_num_heads=4,
+                 decoder_num_heads=4,
+                 encoder_keep_mag=False,
+                 decoder_keep_mag=False): 
+        super().__init__() 
+        #Frozen convolution 
+        # self.ts_proj=nn.Linear(in_features=n_diff+1,out_features=ts_emb_dim)
+        self.frozen_conv=frozen_diff_conv(n_diff=n_diff)
+        #Position embedding 
+        self.pos_emb=pos_emb_model
+        #Encoder layers
+        self.encoder_layers=nn.ModuleList([
+            ts_encoder(ts_dim=ts_emb_dim,num_heads=encoder_num_heads,dropout=encoder_dropout,feedforward_layer_list=encoder_feedforward_list,keep_mag=encoder_keep_mag)
+            for _ in range(encoder_layer_num)
+        ])
+        #Decoder layers 
+        self.decoder_layers=nn.ModuleList([
+            ts_decoder(ts_dim=ts_emb_dim,num_heads=decoder_num_heads,dropout=decoder_dropout,decoder_feedforward_list=decoder_feedforward_list,keep_mag=decoder_keep_mag)
+            for _ in range(decoder_layer_num) 
+        ])
+        #Output feedforward
+        self.output_feedforward=output_feedforward 
+        
+        #Scaler 
+        self.input_scaler=input_scaler
+        
+        self.n_diff=n_diff
+        
+    def forward(self,x):
+        #Adjust input 
+        x*=self.input_scaler
+        x=torch.unsqueeze(x,dim=1)
+        x=self.frozen_conv(x)
+        x=x.permute(0,2,1) 
+        #Record dimensions
+        Batch=x.shape[0]
+        Length=x.shape[1]
+        # ts_dim=x.shape[2]
+        #Position embedding 
+        x=self.pos_emb(x)
+        #Run though the encoder layers 
+        for layer in self.encoder_layers: 
+            x=layer(x)
+        encoder_memory=x
+        #Create zeros as first prediction ground truth 
+        target_input=self.pos_emb(torch.zeros(Batch,1,self.n_diff+1))
+        #The autoregression steps for creating predictions step by step 
+        for _ in range(1,Length+1): 
+            next_steps=target_input
+            for layer in self.decoder_layers: 
+                next_steps=layer(ground_target=next_steps,encoder_memory=encoder_memory)
+            target_input=torch.cat([target_input,next_steps[:,-1,:]],dim=1)
+        out=self.output_feedforward(target_input[:,1:,:])
+        return torch.sum(out,dim=1)/self.input_scaler 
