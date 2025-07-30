@@ -63,7 +63,14 @@ class MSPELoss(nn.Module):
     
 #Training loop###################################################################################################################################
      
-def reg_validator_rmspe(model, val_loader, device, eps=0,scaler=1, norm_train_target=False, train_target_mean=None, train_target_std=None): 
+def reg_validator_rmspe(model, 
+                        val_loader, 
+                        device, 
+                        eps=0,
+                        scaler=1, 
+                        norm_train_target=False, 
+                        train_target_mean=None, 
+                        train_target_std=None): 
     #Created 06/25/25 In progress, testing needed. 
     """
     Returns the rmspe on the validation set for regression type training. As a reminder, one should not apply normalization to validation dataset's target, but one should apply the same normalization to the input features as the training dataset. 
@@ -96,7 +103,22 @@ def reg_validator_rmspe(model, val_loader, device, eps=0,scaler=1, norm_train_ta
         rmspe=torch.sqrt(sum_of_square/total_count)
     return rmspe
         
-def reg_training_loop_rmspe(optimizer, model, train_loader, val_loader, device, ot_steps=100, recall_best=True, eps=0, list_train_loss=None, list_val_loss=None, report_interval=20, n_epochs=1000, scaler=1, norm_train_target=False, train_target="target",scheduler=None): 
+def reg_training_loop_rmspe(optimizer, 
+                            model, 
+                            train_loader, 
+                            val_loader, 
+                            device, 
+                            ot_steps=100, 
+                            recall_best=True, 
+                            eps=0, 
+                            list_train_loss=None, 
+                            list_val_loss=None, 
+                            report_interval=20, 
+                            n_epochs=1000, 
+                            scaler=1, 
+                            norm_train_target=False, 
+                            train_target="target", 
+                            scheduler=None): 
     #Created 06/25/25 In progress, testing needed
     #Modified 06/08/25 Denormalization was moved before loss calculation
     #Modified 07/23/25 Add printing best validation when updated 
@@ -245,7 +267,19 @@ class RVdataset(Dataset):
     #Modified 07/03/25 added normalization functionality 
     #Modified 07/14/25 Added self.featureplace to help with spliting feature tensor. 
     #Modified 07/21/25 Now to function can auto cast strings into int for stock and time id 
-    def __init__(self, query_str=None, query_val_list=None, time_id_list=None, stock_id_list=None, tab_features=None, ts_features=None, target="target", df_ts_feat=None, df_tab_feat=None, df_target=None, numeric=False, norm_feature_dict=None):
+    def __init__(self, 
+                 query_str=None, 
+                 query_val_list=None, 
+                 time_id_list=None, 
+                 stock_id_list=None, 
+                 tab_features=None, 
+                 ts_features=None, 
+                 target="target", 
+                 df_ts_feat=None, 
+                 df_tab_feat=None, 
+                 df_target=None, 
+                 numeric=False, 
+                 norm_feature_dict=None):
         """
         Object in subclass of Dataset. It is ADVISED to cast stock and time id as int before running this function, especially when using query_str. 
         
@@ -538,7 +572,15 @@ class frozen_diff_conv(nn.Module):
 class RV_RNN_conv(nn.Module):        
     #Created 07/02/25 see RNN_with_frozen_conv.ipynb for documentation. 
     #Modified 07/08/25 Added LSTM and GRU options
-    def __init__(self,rnn_num_layer,rnn_drop_out,n_diff = 2,rnn_type="rnn",rnn_act="tanh",proj_dim=32,rnn_hidden_size=32,input_scaler=10000):
+    def __init__(self,
+                 rnn_num_layer,
+                 rnn_drop_out,
+                 n_diff = 2,
+                 rnn_type="rnn",
+                 rnn_act="tanh",
+                 proj_dim=32,
+                 rnn_hidden_size=32,
+                 input_scaler=10000):
         """
         :param n_diff: Defaulted to 2. Decides how many derivative features is wanted in the time series. 
         :param rnn_num_layer: num_layer parameter for rnn. 
@@ -602,7 +644,13 @@ class RV_RNN_conv(nn.Module):
     
 class id_learned_embedding_adj_rnn_mtpl(nn.Module): 
     #Created 07/21/25
-    def __init__(self, ts_place, id_place, rnn_model, id_hidden_model, id_input_num=112,emb_dim=8):
+    def __init__(self, 
+                 ts_place, 
+                 id_place, 
+                 rnn_model, 
+                 id_hidden_model, 
+                 id_input_num=112,
+                 emb_dim=8):
         """
         A model that takes a categorical id and embed it to a higher dimensional vecotr space, then use the embedded vector as for adjustment on the base rnn models. 
         
@@ -636,7 +684,15 @@ class id_learned_embedding_adj_rnn_mtpl(nn.Module):
 
 class id_learned_embedding_attend_rnn(nn.Module): 
     #Created 07/23/25
-    def __init__(self, ts_place, id_place, rnn_model, id_hidden_model, id_input_num=112, id_emb_dim=8, att_emb_dim=32,att_num_head=1): 
+    def __init__(self, 
+                 ts_place, 
+                 id_place, 
+                 rnn_model, 
+                 id_hidden_model, 
+                 id_input_num=112, 
+                 id_emb_dim=8, 
+                 att_emb_dim=32, 
+                 att_num_head=1): 
         """
         A model that takes rnn output and simply have it pay (cross) attention to the categorical id. 
         
@@ -678,7 +734,13 @@ class id_learned_embedding_attend_rnn(nn.Module):
 
 class pos_emb_cross_attn(nn.Module): 
     #Created 07/24/25 
-    def __init__(self,length,ts_dim,emb_dim,dropout,num_heads,keep_mag=False): 
+    def __init__(self,
+                 length,
+                 ts_dim,
+                 emb_dim,
+                 dropout,
+                 num_heads,
+                 keep_mag=False): 
         """
         Takes time series x of shape (Batch size, length, ts_dim), and produces layernorm(x+ cross_attn(q=x,k=position,v=postion)) that has dimension emb_dim in each time step. 
         
@@ -717,7 +779,12 @@ class pos_emb_cross_attn(nn.Module):
 
 class ts_encoder(nn.Module): 
     #Created 07/24/25 
-    def __init__(self,ts_dim,dropout,num_heads,feedforward_layer_list,keep_mag=False): 
+    def __init__(self,
+                 ts_dim,
+                 dropout,
+                 num_heads,
+                 feedforward_layer_list,
+                 keep_mag=False): 
         """
         An encoder (self attention) layer designed for timeseries. Takes timeseries of shape (batch size, length, ts_dim). 
         
@@ -765,7 +832,22 @@ class ts_encoder(nn.Module):
 
 class ts_decoder(nn.Module): 
     #Created 07/29/25
-    def __init__(self,ts_dim,num_heads,dropout,decoder_feedforward_list,keep_mag=False): 
+    def __init__(self,
+                 ts_dim,
+                 num_heads,
+                 dropout,
+                 decoder_feedforward_list,
+                 keep_mag=False): 
+        """
+        A decoder layer designed for timeseries. Takes timeseries of shape (batch size, length, ts_dim). 
+        
+        :param ts_dim: The dimention of each time step. 
+        :param dropout: The drop out rate of the attention layers. 
+        :param num_heads: The num_heads used by the attention layers. 
+        :param feedforward_layers_list: The list of feed forward layer post the attention layers. Must take tensor in shape of (batch size, length, ts_dim). For our purpose, it is also advices to have it output the same shape. 
+        :param keep_mag: Defaulted to False. If set to true, the layers will work to preserve more magnitude signal of the input. 
+        :return: A tensor of shape (batch size, length, step dimension of feedforward_layers) 
+        """
         super().__init__()
         self.decoder_self_attn=nn.MultiheadAttention(embed_dim=ts_dim,num_heads=num_heads,dropout=dropout,batch_first=True)
         self.decoder_norm1=nn.LayerNorm(ts_dim)
@@ -776,20 +858,28 @@ class ts_decoder(nn.Module):
         
         self.keep_mag=keep_mag
     
-    def forward(self,ground_target,encoder_memory,ground_target_mask=None): 
+    def forward(self,
+                ground_target,
+                encoder_memory,
+                ground_target_mask=None): 
+        """
+        :param ground_target: The ground target. 
+        :param encoder_memory: The memory from encoder. 
+        :param ground_target_mask: Defaulted to None. The mask used. 
+        """
         self_attn,_=self.decoder_self_attn(ground_target,ground_target,ground_target,attn_mask=ground_target_mask) 
         if self.keep_mag: 
-            target=(target+self_attn+self.decoder_norm1(target+self_attn))/2 
+            ground_target=(ground_target+self_attn+self.decoder_norm1(ground_target+self_attn))/2 
         else: 
-            target=self.decoder_norm1(target+self_attn)
-        cross_attn,_=self.decoder_cross_attn(target,encoder_memory,encoder_memory) 
+            ground_target=self.decoder_norm1(ground_target+self_attn)
+        cross_attn,_=self.decoder_cross_attn(ground_target,encoder_memory,encoder_memory) 
         if self.keep_mag: 
-            target=(target+cross_attn+self.decoder_norm2(target+cross_attn))/2 
+            ground_target=(ground_target+cross_attn+self.decoder_norm2(ground_target+cross_attn))/2 
         else: 
-            target=self.decoder_norm2(target+cross_attn)
-        ground_target=target
+            ground_target=self.decoder_norm2(ground_target+cross_attn)
+        target=ground_target
         for layer in self.decoder_feedforward: 
-            target=layer(target)
+            ground_target=layer(ground_target)
         return ground_target+target
             
         
@@ -797,7 +887,17 @@ class ts_decoder(nn.Module):
 
 class encoder_ensemble(nn.Module): 
     #Created 07/24/25 
-    def __init__(self,pos_emb_model,output_feedforward,encoder_dropout,encoder_feedforward_list,n_diff=2,encoder_layer_num=4,input_scaler=10000,ts_emb_dim=32,encoder_num_heads=4,encoder_keep_mag=False): 
+    def __init__(self,
+                 pos_emb_model,
+                 output_feedforward,
+                 encoder_dropout,
+                 encoder_feedforward_list,
+                 n_diff=2,
+                 encoder_layer_num=4,
+                 input_scaler=10000,
+                 ts_emb_dim=32,
+                 encoder_num_heads=4,
+                 encoder_keep_mag=False): 
         """
         The ensemble of compoenents to produce a whole transformer (encoder based only) model for timeseries to predict the target. 
         
@@ -810,7 +910,6 @@ class encoder_ensemble(nn.Module):
         :param encoder_feedforward_list: The feedforward_layer_list used by the encoder. 
         :param encoder_num_heads: The num_heads used by the encoder. 
         :param ts_emb_dim: Defaulted to 32. The dimension of each time step of the post pos_emb_model timeseries. 
-        :param device: The device used. 
         :param encoder_keep_mag: Defaulted to False, the keep_mag used by ts_encoder(). 
         """
         super().__init__() 
@@ -847,7 +946,11 @@ class encoder_ensemble(nn.Module):
     
 # Encoder, decoder, together (no teacher forcing, could not figure out how to implement it in our case) 
 
-class encoder_decoder_autoregression(nn.Module): 
+class encoder_decoder_autoregressionOnly(nn.Module): 
+    # This is likely to have memory explosion: We are doing autoregression without no_grad(). 
+    """
+    This is likely to have memory explosion: We are doing autoregression without no_grad(). This is just an experiment for now, be careful with it. 
+    """
     def __init__(self,
                  pos_emb_model,
                  output_feedforward,
@@ -905,12 +1008,12 @@ class encoder_decoder_autoregression(nn.Module):
             x=layer(x)
         encoder_memory=x
         #Create zeros as first prediction ground truth 
-        target_input=self.pos_emb(torch.zeros(Batch,1,self.n_diff+1))
+        target_input=self.pos_emb(torch.zeros(Batch,1,self.n_diff+1).to(x.device))
         #The autoregression steps for creating predictions step by step 
         for _ in range(1,Length+1): 
             next_steps=target_input
             for layer in self.decoder_layers: 
                 next_steps=layer(ground_target=next_steps,encoder_memory=encoder_memory)
-            target_input=torch.cat([target_input,next_steps[:,-1,:]],dim=1)
+            target_input=torch.cat([target_input,next_steps[:,-1:,:]],dim=1)
         out=self.output_feedforward(target_input[:,1:,:])
         return torch.sum(out,dim=1)/self.input_scaler 
