@@ -908,7 +908,7 @@ class encoder_ensemble(nn.Module):
         :param input_scaler: Defaulted to 10000: The input scaler to make the input values more reasonably sized. 
         :param encoder_dropout: The dropout rate of encoder. 
         :param encoder_feedforward_list: The feedforward_layer_list used by the encoder. 
-        :param encoder_num_heads: The num_heads used by the encoder. 
+        :param encoder_num_heads: Defaulted to 4. The num_heads used by the encoder. 
         :param ts_emb_dim: Defaulted to 32. The dimension of each time step of the post pos_emb_model timeseries. 
         :param encoder_keep_mag: Defaulted to False, the keep_mag used by ts_encoder(). 
         """
@@ -948,9 +948,6 @@ class encoder_ensemble(nn.Module):
 
 class encoder_decoder_autoregressionOnly(nn.Module): 
     # This is likely to have memory explosion: We are doing autoregression without no_grad(). 
-    """
-    This is likely to have memory explosion: We are doing autoregression without no_grad(). This is just an experiment for now, be careful with it. 
-    """
     def __init__(self,
                  pos_emb_model,
                  output_feedforward,
@@ -967,6 +964,9 @@ class encoder_decoder_autoregressionOnly(nn.Module):
                  decoder_num_heads=4,
                  encoder_keep_mag=False,
                  decoder_keep_mag=False): 
+        """
+        This is likely to have memory explosion: We are doing autoregression without no_grad(). This is just an experiment for now, be careful with it. 
+        """
         super().__init__() 
         #Frozen convolution 
         # self.ts_proj=nn.Linear(in_features=n_diff+1,out_features=ts_emb_dim)
@@ -1017,3 +1017,118 @@ class encoder_decoder_autoregressionOnly(nn.Module):
             target_input=torch.cat([target_input,next_steps[:,-1:,:]],dim=1)
         out=self.output_feedforward(target_input[:,1:,:])
         return torch.sum(out,dim=1)/self.input_scaler 
+    
+# Encoder, decoder, together with teacher forcing
+    
+class encoder_decoder_teacherforcing(nn.Module): 
+    def __init__(self,
+                 pos_emb_model,
+                 output_feedforward,
+                 encoder_dropout,
+                 decoder_dropout,
+                 encoder_feedforward_list,
+                 decoder_feedforward_list,
+                 n_diff=2,
+                 encoder_layer_num=2,
+                 decoder_layer_num=2,
+                 input_scaler=10000,
+                 ts_emb_dim=32,
+                 encoder_num_heads=4,
+                 decoder_num_heads=4,
+                 encoder_keep_mag=False,
+                 decoder_keep_mag=False,
+                 return_sum=False): 
+        """
+        This is un version of traditional encoder decoder training for later autoregression use. Training with this with return_sum set to False will most likely require a new training loop written. 
+        
+        The ensemble of compoenents to produce a whole transformer (with both encoder and decoder) model for timeseries to predict the target. 
+            
+            :param pos_emb_model: The postion embedding model. Expected to be created through pos_emb_cross_attn(). 
+            :param output_feedforward: The feed forward layers right before the output. Expected to take tensors of out put shape of the encoder_model and produce a tensor of shape (batch size, length, 1). 
+            :param n_diff: Defaulted to 2. The number of dirivatives to be created for the timeseries. 
+            :param encoder_layer_num: Defaulted to 2. The number of layers of encoder to be applied in a row. 
+            :param decoder_layer_num: Defaulted to 2. The number of layers of decoder to be applied in a row. 
+            :param input_scaler: Defaulted to 10000: The input scaler to make the input values more reasonably sized. 
+            :param encoder_dropout: The dropout rate of encoder. 
+            :param decoder_dropout: The dropout rate of decoder. 
+            :param encoder_feedforward_list: The feedforward_layer_list used by the encoder. 
+            :param decoder_feedforward_list: The decoder_feedforward_list used by the decoder. 
+            :param encoder_num_heads: Defaulted to 4. The num_heads used by the encoder. 
+            :param decoder_num_heads: Defaulted to 4. The num_heads used by the decoder. 
+            :param ts_emb_dim: Defaulted to 32. The dimension of each time step of the post pos_emb_model timeseries. 
+            :param encoder_keep_mag: Defaulted to False, the keep_mag used by ts_encoder(). 
+            :param decoder_keep_mag: Defaulted to False, the keep_mag used by ts_decoder(). 
+            :param return_sum: Defaulted to False. If set to True, will return the sum of created sequence, otherwise the sequence itself. 
+        """
+        super().__init__() 
+        #Frozen convolution 
+        # self.ts_proj=nn.Linear(in_features=n_diff+1,out_features=ts_emb_dim)
+        self.frozen_conv=frozen_diff_conv(n_diff=n_diff)
+        #Position embedding 
+        self.pos_emb=pos_emb_model
+        #Encoder layers
+        self.encoder_layers=nn.ModuleList([
+            ts_encoder(ts_dim=ts_emb_dim,num_heads=encoder_num_heads,dropout=encoder_dropout,feedforward_layer_list=encoder_feedforward_list,keep_mag=encoder_keep_mag)
+            for _ in range(encoder_layer_num)
+        ])
+        #Decoder layers 
+        self.decoder_layers=nn.ModuleList([
+            ts_decoder(ts_dim=ts_emb_dim,num_heads=decoder_num_heads,dropout=decoder_dropout,decoder_feedforward_list=decoder_feedforward_list,keep_mag=decoder_keep_mag)
+            for _ in range(decoder_layer_num) 
+        ])
+        #Output feedforward
+        self.output_feedforward=output_feedforward 
+        
+        #Scaler 
+        self.input_scaler=input_scaler
+        
+        self.n_diff=n_diff
+        
+        self.return_sum=return_sum
+        
+    def forward(self,x,ground_target=None):
+        """
+        :param x: The input sequence. 
+        :param ground_target: Defaulted to None. Will be subbed to x if kept None. 
+        """
+        #Adjust input 
+        x*=self.input_scaler
+        x=torch.unsqueeze(x,dim=1)
+        x=self.frozen_conv(x)
+        x=x.permute(0,2,1) 
+        #Record dimensions
+        # Batch=x.shape[0]
+        Length=x.shape[1]
+        #Breaking the input timeseries in two equal halves 
+        # try: 
+        #     if Length%2: 
+        #         raise ValueError("Length of input sequence is NOT even")
+        #     half=Length/2
+        #     x1=x[:,:half,:]
+        #     x2=x[:,half:,:]
+        # except ValueError as e:
+        #     print("Error: {e}")
+        #     sys.exit(1)
+        # # ts_dim=x.shape[2]
+        #Position embedding 
+        x=self.pos_emb(x)
+        #Run though the encoder layers 
+        for layer in self.encoder_layers: 
+            x=layer(x)
+        encoder_memory=x
+        #Create Masking for ground target 
+        casual_mask=torch.triu(torch.ones(Length, Length) * float('-inf'), diagonal=1).to(device=x.device)
+        #If ground_target is None, use x to sub in 
+        if ground_target is None: 
+            ground_target=x
+        #The decoder layers 
+        for layer in self.decoder_layers: 
+            ground_target=layer(ground_target=ground_target,encoder_memory=encoder_memory,ground_target_mask=casual_mask)
+        
+        out=self.output_feedforward(ground_target)
+        
+        if self.return_sum: 
+            return torch.sum(out,dim=1)/self.input_scaler 
+        else: 
+            return self.output_feedforward(ground_target)/self.input_scaler
+    
