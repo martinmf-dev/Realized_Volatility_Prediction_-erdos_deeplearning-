@@ -724,7 +724,7 @@ class id_learned_embedding_attend_rnn(nn.Module):
         # print("rnn and adj ready")
         # print("rnn", rnn_output.shape)
         # print("adj", adj_output.shape)
-        att_output,_=self.attention(query=adj_output,key=rnn_output,value=rnn_output) 
+        att_output,_=self.attention(query=rnn_output,key=adj_output,value=adj_output) 
         # print("att ready")
         output=self.final_linear(att_output)
         
