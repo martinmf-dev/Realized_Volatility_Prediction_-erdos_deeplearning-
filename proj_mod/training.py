@@ -688,7 +688,8 @@ class id_learned_embedding_attend_rnn(nn.Module):
                  ts_place, 
                  id_place, 
                  rnn_model, 
-                 id_hidden_model, 
+                 id_hidden_model,
+                 attn_ff_list, 
                  id_input_num=112, 
                  id_emb_dim=8, 
                  att_emb_dim=32, 
@@ -704,6 +705,7 @@ class id_learned_embedding_attend_rnn(nn.Module):
         :param id_emb_dim: Defaulted to 8. The desired dimension of the vector space that one wants to embed the categorical id into. 
         :param att_emb_dim: Defaulted to 32. The emb_dim used by the cross attention layer. 
         :param att_num_head: Defaulted to 1. The num_heads used by the cross attention layer. 
+        :param attn_ff_list: A list of layers, in order, to pass the cross attention output through. Expected to take the time step dimension of timeseries, and return with the same dimension.
         """
         super().__init__()
         self.id_embeder = nn.Embedding(num_embeddings=id_input_num, embedding_dim=id_emb_dim)
@@ -712,6 +714,7 @@ class id_learned_embedding_attend_rnn(nn.Module):
         self.attention=nn.MultiheadAttention(embed_dim=att_emb_dim,num_heads=att_num_head,dropout=0.1,batch_first=True)
         self.post_rnn_linear=nn.Linear(in_features=1,out_features=32)
         self.final_linear=nn.Linear(in_features=att_emb_dim,out_features=1)
+        self.att_ff_layers=nn.ModuleList(attn_ff_list)
         
         self.ts_place=ts_place
         self.id_place=id_place
@@ -725,6 +728,8 @@ class id_learned_embedding_attend_rnn(nn.Module):
         # print("rnn", rnn_output.shape)
         # print("adj", adj_output.shape)
         att_output,_=self.attention(query=rnn_output,key=adj_output,value=adj_output) 
+        for layer in self.att_ff_layers: 
+            att_output=layer(att_output)
         att_output=rnn_output*att_output
         # print("att ready")
         output=self.final_linear(att_output)
