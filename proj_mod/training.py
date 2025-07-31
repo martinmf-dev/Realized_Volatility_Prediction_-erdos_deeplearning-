@@ -1132,4 +1132,3 @@ class encoder_decoder_teacherforcing(nn.Module):
             return torch.sum(out,dim=1)/self.input_scaler 
         else: 
             return self.output_feedforward(ground_target)/self.input_scaler
-    
