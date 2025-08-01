@@ -580,7 +580,8 @@ class RV_RNN_conv(nn.Module):
                  rnn_act="tanh",
                  proj_dim=32,
                  rnn_hidden_size=32,
-                 input_scaler=10000):
+                 input_scaler=10000,
+                 return_sum=True):
         """
         :param n_diff: Defaulted to 2. Decides how many derivative features is wanted in the time series. 
         :param rnn_num_layer: num_layer parameter for rnn. 
@@ -590,6 +591,7 @@ class RV_RNN_conv(nn.Module):
         :param rnn_hidden_size: Defaulted to 32. The hidden_size parameter for rnn. 
         :param input_scaler: Defaulted to 10000. Set a scaling to input, a lot of timeseries values of our data are extremely close to zero. 
         :param rnn_type: 'rnn', 'lstm', or 'gru'
+        :param return_sum: Defaulted to True. If set to True, will return the sum of created sequence, otherwise the sequence itself. 
         """
         super().__init__()
         
@@ -628,6 +630,8 @@ class RV_RNN_conv(nn.Module):
         self.linear_post_rnn=nn.Linear(rnn_hidden_size,1)
         self.frozen_list=["frozen_conv"] 
         
+        self.return_sum=return_sum
+        
     def forward(self,x):
         #First, scale the input, and unsqueese to add in one dimension in dim 1 as channel. This is needed for convolution. 
         x*=self.input_scaler
@@ -638,7 +642,10 @@ class RV_RNN_conv(nn.Module):
         x=self.RNN_layer(x)[0]
         x=self.linear_post_rnn(x)
         
-        return torch.sum(x,dim=1)/self.input_scaler
+        if self.return_sum: 
+            return torch.sum(x,dim=1)/self.input_scaler
+        else: 
+            return x/self.input_scaler
 
 # id adjusted rnn model by multiplication 
     
@@ -903,7 +910,8 @@ class encoder_ensemble(nn.Module):
                  input_scaler=10000,
                  ts_emb_dim=32,
                  encoder_num_heads=4,
-                 encoder_keep_mag=False): 
+                 encoder_keep_mag=False,
+                 return_sum=True): 
         """
         The ensemble of compoenents to produce a whole transformer (encoder based only) model for timeseries to predict the target. 
         
@@ -917,6 +925,7 @@ class encoder_ensemble(nn.Module):
         :param encoder_num_heads: Defaulted to 4. The num_heads used by the encoder. 
         :param ts_emb_dim: Defaulted to 32. The dimension of each time step of the post pos_emb_model timeseries. 
         :param encoder_keep_mag: Defaulted to False, the keep_mag used by ts_encoder(). 
+        :param return_sum: Defaulted to True. If set to True, will return the sum of created sequence, otherwise the sequence itself. 
         """
         super().__init__() 
         #Frozen convolution 
@@ -935,6 +944,8 @@ class encoder_ensemble(nn.Module):
         #Scaler 
         self.input_scaler=input_scaler
         
+        self.return_sum=return_sum
+        
     def forward(self,x):
         #Adjust input 
         x*=self.input_scaler
@@ -948,7 +959,10 @@ class encoder_ensemble(nn.Module):
             x=layer(x)
         #Output feedforward
         x=self.output_feedforward(x)
-        return torch.sum(x,dim=1)/self.input_scaler
+        if self.return_sum: 
+            return torch.sum(x,dim=1)/self.input_scaler
+        else: 
+            return x/self.input_scaler
     
 # Encoder, decoder, together (no teacher forcing, could not figure out how to implement it in our case) 
 
@@ -1043,7 +1057,7 @@ class encoder_decoder_teacherforcing(nn.Module):
                  decoder_num_heads=4,
                  encoder_keep_mag=False,
                  decoder_keep_mag=False,
-                 return_sum=False): 
+                 return_sum=True): 
         """
         This is un version of traditional encoder decoder training for later autoregression use. Training with this with return_sum set to False will most likely require a new training loop written. 
         
@@ -1064,7 +1078,7 @@ class encoder_decoder_teacherforcing(nn.Module):
             :param ts_emb_dim: Defaulted to 32. The dimension of each time step of the post pos_emb_model timeseries. 
             :param encoder_keep_mag: Defaulted to False, the keep_mag used by ts_encoder(). 
             :param decoder_keep_mag: Defaulted to False, the keep_mag used by ts_decoder(). 
-            :param return_sum: Defaulted to False. If set to True, will return the sum of created sequence, otherwise the sequence itself. 
+            :param return_sum: Defaulted to True. If set to True, will return the sum of created sequence, otherwise the sequence itself. 
         """
         super().__init__() 
         #Frozen convolution 
