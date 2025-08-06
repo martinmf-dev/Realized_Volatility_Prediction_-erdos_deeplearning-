@@ -162,6 +162,24 @@ def create_df_trade_vals_by_row_id(str_path):
     df_vals = df_vals.reset_index(drop=True)
     return df_vals
 
+def create_df_param_emb_by_group(df_in: pd.DataFrame, 
+                                 str_groupby: str, 
+                                 dict_params_aggfun: dict):
+    # Created 06/08/25 
+    """
+    A function that takes dataframe df_in and create parameter embedding of category identified by str_groupby with aggregation functions in dict_params_aggfun. 
+    
+    :param df_in: The input dataframe. 
+    :param str_groupby: A string of the column name used as category id to group by. 
+    :param dict_params_aggfun: A dictionary in form of {string name of column: list of aggregation function(s) applied to it}, currently it is adviced that the list of aggregation functions is a sublist of ["mean","std","sum"]. As an example, {"price_mean",["mean","std"]}
+    :return: A dataframe with new columns to use as parameter embedding for specified category identified by str_groupby. 
+    """
+    df_group=df_in.groupby([str_groupby]).agg(dict_params_aggfun).reset_index()
+    df_group.columns=df_group.columns.map(("_"+str_groupby+"_").join)
+    df_group=df_group.rename(columns={(str_groupby+"_"+str_groupby+"_"):str_groupby})
+    df_join=df_in.merge(df_group, on=str_groupby)
+    return df_join
+
 def book_for_stock(str_file_path,stock_id,time_id,create_para=True):
     """
     A function that returns a pandas dataframe containing the book data of a stock specified in str_file_path with certain time_id. 
