@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import sys
 import time
 import pandas as pd
+import copy
 from sklearn.linear_model import LinearRegression
 from torch.utils.data import Dataset, DataLoader
 
@@ -792,6 +793,7 @@ class pos_emb_cross_attn(nn.Module):
 
 class ts_encoder(nn.Module): 
     #Created 07/24/25 
+    #Modified 08/06/25: Added deepcopy to fix unintended recursive feedforward layers. 
     def __init__(self,
                  ts_dim,
                  dropout,
@@ -822,7 +824,8 @@ class ts_encoder(nn.Module):
         #     else: 
         #         ff_list.append(nn.Linear(in_features=feedforward_dim,out_features=feedforward_dim))
         #     # current
-        self.encoder_feedforward=nn.ModuleList(feedforward_layer_list)
+        ff_layer=copy.deepcopy(feedforward_layer_list)
+        self.encoder_feedforward=nn.ModuleList(ff_layer)
         self.encoder_norm2=nn.LayerNorm(ts_dim)
         self.keep_mag=keep_mag
         
@@ -845,6 +848,7 @@ class ts_encoder(nn.Module):
 
 class ts_decoder(nn.Module): 
     #Created 07/29/25
+    #Modified 08/06/25: Added deepcopy to fix unintended recursive feedforward layers. 
     def __init__(self,
                  ts_dim,
                  num_heads,
@@ -866,7 +870,8 @@ class ts_decoder(nn.Module):
         self.decoder_norm1=nn.LayerNorm(ts_dim)
         self.decoder_cross_attn=nn.MultiheadAttention(embed_dim=ts_dim,num_heads=num_heads,dropout=dropout,batch_first=True)
         self.decoder_norm2=nn.LayerNorm(ts_dim)
-        self.decoder_feedforward=nn.ModuleList(decoder_feedforward_list)
+        ff_layers=copy.deepcopy(decoder_feedforward_list)
+        self.decoder_feedforward=nn.ModuleList(ff_layers)
         # self.dropout=nn.Dropout(dropout)
         
         self.keep_mag=keep_mag
@@ -1151,3 +1156,113 @@ class encoder_decoder_teacherforcing(nn.Module):
             return torch.sum(out,dim=1)/self.input_scaler 
         else: 
             return self.output_feedforward(ground_target)/self.input_scaler
+        
+# Multi adjust on base model 
+
+class multi_adj_by_attd(nn.Module):
+    def __init__(self,
+                 base_model,
+                 adj_layers,
+                 ts_place,
+                 row_layers=None,
+                 time_layers=None,
+                 stock_layers=None,
+                 emb_layers=None,
+                 row_place=None, 
+                 time_place=None,
+                 stock_place=None,
+                 emb_place=None,
+                 num_stock=112,
+                 stock_emb_dim=8,
+                 adj_pos_emb_dim=4,
+                 adj_pos_dropout=0.2,
+                 adj_pos_num_heads=1,
+                 adj_proj_dim=16):
+        """
+        The model of asjusting basemodel output with multiple categories identified by parameter embedding. 
+        
+        :param base_model: The base model to be adjusted on. 
+        :param adj_layers: A list of feedforward layers for the adjustment values, expects input shape of (N, L, adj_proj_dim) and produces the same shape in output. L is the number of catgories of adjusters used. 
+        :param ts_place: A tuple as continuous interval indicating the place of timeseries input in the whole input tensor. 
+        :param row_layers: Defaulted to None. A list of feedforward layers for the parameters associated to row_id, expects input shape of (N,num of row parameters). 
+        :param time_layers: Defaulted to None. A list of feedforward layers for the parameters associated to time_id, expects input shape of (N,num of time parameters). 
+        :param stock_layers: Defaulted to None. A list of feedforward layers for the parameters associated to stock_id, expects input shape of (N,num of stock parameters). 
+        :param emb_layers: Defaulted to None. A list of feedforward layers for the parameters associated to stock_id, expects input shape of (N,1,stock_emb_dim). 
+        :param row_place: Defaulted to None. A tuple as continuous interval indicating the place of row id parameter input in the whole input tensor. 
+        :param time_place: Defaulted to None. A tuple as continuous interval indicating the place of time id parameter input in the whole input tensor. 
+        :param stock_place: Defaulted to None. A tuple as continuous interval indicating the place of stock id parameter input in the whole input tensor. 
+        :param emb_place: Defaulted to None. A tuple as continuous interval indicating the place of emb id input in the whole input tensor. 
+        :param num_stock: Defaulted to 112. This is the total number of stocks present. 
+        :param stock_emb_dim: Defaulted to 8. The dimension to for stock id (emb id) discrete learned embedding.  
+        :param adj_pos_emb_dim: Defaulted to 4. The dimension to which we project each adjument value when applying the positional embedding on the adjustment tensor. 
+        :param adj_pos_dropout: Defaulted to 0.2. The dropout used by the cross attention postional embedding layer on the adjustment tensor.  
+        :param adj_pos_num_heads: Defaulted to 1. The num_heads used by the cross attention postional embedding layer on the adjustment tensor. 
+        :param adj_proj_dim: Defaulted to 16. The dimension to which we project the post positional embedding adjustment tensor to. 
+        """
+        super().__init__()
+        self.base_model=base_model
+        self.ts_place=ts_place
+        self.row_place=None
+        self.time_place = None
+        self.stock_place=None
+        self.emb_place=None
+        adj_length=0
+        if (not row_layers is None) and (not row_place is None): 
+            self.row_layers=nn.ModuleList(row_layers)
+            self.row_place=row_place
+            adj_length+=1
+        if (not time_layers is None) and (not time_place is None): 
+            self.time_layers = nn.ModuleList(time_layers)
+            self.time_place = time_place
+            adj_length+=1
+        if (not stock_layers is None) and (not stock_place is None): 
+            self.stock_layers = nn.ModuleList(stock_layers)
+            self.stock_place=stock_place
+            adj_length+=1
+        if (not emb_layers is None) and (not emb_place is None): 
+            self.id_embeder = nn.Embedding(num_embeddings=num_stock, embedding_dim=stock_emb_dim)
+            self.emb_layers=nn.ModuleList(emb_layers)
+            self.emb_place=emb_place
+            adj_length+=1
+        self.adj_pos_emb=pos_emb_cross_attn(length=adj_length,ts_dim=1,emb_dim=adj_pos_emb_dim,dropout=adj_pos_dropout,num_heads=adj_pos_num_heads,keep_mag=True)
+        self.adj_proj=nn.Linear(in_features=adj_pos_emb_dim,out_features=adj_proj_dim)
+        self.adj_layers=nn.ModuleList(adj_layers)
+        self.adj_proj_down=nn.Linear(in_features=adj_proj_dim,out_features=1)
+        self.final_linear=nn.Linear(in_features=adj_length,out_features=1)
+        self.final=nn.Tanh()
+    def forward(self,x):
+        x_ts= x[:,self.ts_place[0]:self.ts_place[1]]
+        base_out=self.base_model(x_ts)
+        tensor_list=[]
+        if not self.row_place is None: 
+            x_row=x[:,self.row_place[0]:self.row_place[1]]
+            for layer in self.row_layers: 
+                x_row=layer(x_row)
+            tensor_list.append(x_row)
+        if not self.time_place is None: 
+            x_time=x[:,self.time_place[0]:self.time_place[1]]
+            for layer in self.time_layers:
+                x_time=layer(x_time)
+            tensor_list.append(x_time)
+        if not self.stock_place is None: 
+            x_stock=x[:,self.stock_place[0]:self.stock_place[1]]
+            for layer in self.stock_layers:
+                x_stock=layer(x_stock)
+            tensor_list.append(x_stock)
+        if not self.emb_place is None: 
+            x_emb=x[:,self.emb_place[0]:self.emb_place[1]].long()
+            x_emb=self.id_embeder(x_emb)
+            for layer in self.emb_layers: 
+                x_emb=layer(x_emb)
+            x_emb=torch.squeeze(x_emb,dim=1)
+            tensor_list.append(x_emb)
+        adj=torch.cat(tensor_list,dim=-1).unsqueeze(-1)
+        adj=self.adj_pos_emb(adj)
+        adj=self.adj_proj(adj)
+        for layer in self.adj_layers: 
+            adj=layer(adj)
+        adj=self.adj_proj_down(adj).squeeze()
+        adj=self.final_linear(adj)
+        adj=self.final(adj)
+        
+        return base_out+base_out*adj 
