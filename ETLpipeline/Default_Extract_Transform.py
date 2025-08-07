@@ -87,9 +87,9 @@ def Default_Ext_Trans():
 print("In this process, raw data will be downloaded from kaggle. Afterwhich, default relevant data will be extracted and transformed with python pandas code with SQL like queries which will then be safed on file.\n")
 start=input("Start the process?(Y/N)\n").upper()
 if start=="Y": 
-    print("If this is the first time you run this code, please input Y to all options. Operation starting ...\n")
+    print("If this is the first time you run this code, please input Y to all options (the options, when advised against, to save csv file is optional, even if this is the fitst time you run the code). Operation starting ...\n")
     Default_Ext_Trans()
-    print("Process finished. Please keep in mind that, due to the structure of pytorch, the loading procedure will be done through training.RVdataset to create pytorch Dataset subclass so that it can be loaded into training loop with pytorch dataloader.")
+    print("Process finished. Please keep in mind that, due to the structure of pytorch, the loading procedure of the ETL pipeline will be done through training.RVdataset to create pytorch Dataset subclass so that it can be loaded into training loop with pytorch dataloader.")
 else: 
     print("Exiting the process")
 
