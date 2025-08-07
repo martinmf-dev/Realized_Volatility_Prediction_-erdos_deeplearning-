@@ -1,0 +1,1 @@
+env files to be imported with dotenv. All files other than this explanation will be ignored by git. 
