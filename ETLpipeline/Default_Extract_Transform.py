@@ -17,6 +17,7 @@ def Default_Ext_Trans():
         print("Retrieving raw data from kaggle: \n")
         kaggle.api.authenticate()
         print("Starting to download, this will take a while ...")
+        start_time = time.time()
         os.system("kaggle competitions download -c optiver-realized-volatility-prediction -p ../raw_data")
         print("Downloaded data to \"../raw_data folder\"")
         with zipfile.ZipFile("../raw_data/optiver-realized-volatility-prediction.zip","r") as zip_ref:
@@ -24,7 +25,9 @@ def Default_Ext_Trans():
         print("Unzipped to ../raw_data/kaggle_ORVP")
         os.remove("../raw_data/optiver-realized-volatility-prediction.zip")
         print("Removed file ../raw_data/optiver-realized-volatility-prediction.zip")
-        print("Raw data received from kaggle. Stored in \"./raw_data/kaggle_ORVP\". Contents of this folder will be ignored by git.\n")
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Raw data received from kaggle in {elapsed_time} seconds. Stored in \"./raw_data/kaggle_ORVP\". Contents of this folder will be ignored by git.\n")
     
     #Recoverying time
     recover_time=input("Would you like to recover time id order?(Y/N)").upper()
