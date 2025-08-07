@@ -36,7 +36,7 @@
       ├── training.py 
       └── visualization.py 
   └── raw_data 
-</pre>pre>
+</pre>
 
 ## Folder and file explanations 
 
