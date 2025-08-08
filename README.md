@@ -64,13 +64,13 @@
   - Parameter_embedding.ipynb: Documentation of adjusting modeling with several categorical input encoded with parameter embedding on various timeseries input models.
   - RNN_with_frozen_conv.ipynb: Documentation of RNN timeseries models.
   - Transformer_with_frozen_conv_1.ipynb: Documentation of transformer models with only encoders.
-* ./processed_data: The folder containing the processed data. This folder is ingored by git.
+* ./processed_data: The folder containing the processed data. This folder is ignored by git.
 * ./proj_mod:
   - data_processing.py: The data processing functions.
   - recover_time_id.py: The time id order recovery functions.
   - training.py: Training related code, including nn.Module subclass, Dataset subclass, and training loop related code.
   - visualization.py: Code on visualization.
-* ./raw_data: The folder containing the raw data. 
+* ./raw_data: The folder containing the raw data. This folder is ignored by git. 
 ## Contributers 
 
 Martin Molina-Fructuoso, Yuan Zhang 
@@ -101,10 +101,17 @@ To see an example of loading the data for training use, see "./ETLpipeline/Loadi
 * Loading the values for training use by feeding the prepared pytorch dataloader to custom made training loop reg_training_loop_rmspe stored in "./proj_mod/training.py" as a paremeter. 
 
 Pandas pivot is a key tool in RVdataset. 
+
 ## EDA 
 
 ## Base line model 
 
 ## Neural network models 
+
+### Timeseries based models 
+Here we discuss the models that only takes timeseries as input. 
+
+### Adjustment models 
+Here we discuss the models that adjust the result produced by timesereies based models (referred as "base model" in this context) with tabular parameters that are used for parameter embedding distinguishing categories including time, stock, and row id. 
 
 ## Future 
