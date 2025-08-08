@@ -100,6 +100,7 @@ To see an example of loading the data for training use, see "./ETLpipeline/Loadi
 * Using the RVdataset pytorch Dataset subclass to initialize a pytorch Dataset object for pytorch dataloader. See "./data_processing/create_datasets.ipynb" for detailed documention, the source code is stored in "./proj_mod/training.py".
 * Loading the values for training use by feeding the prepared pytorch dataloader to custom made training loop reg_training_loop_rmspe stored in "./proj_mod/training.py" as a paremeter. 
 
+Pandas pivot is a key tool in RVdataset. 
 ## EDA 
 
 ## Base line model 
