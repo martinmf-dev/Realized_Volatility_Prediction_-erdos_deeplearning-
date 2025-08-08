@@ -123,21 +123,24 @@ See detail at "./NNetwork/Frozen_conv_layer.ipynb" for documentation.
 ### Transformer building blocks  
 Here we discuss the custom transformer based building blocks. 
 
-##### Encoder 
+* **Encoder**
+
 A custom encoder layer: 
 
 <img width="386" height="458" alt="image" src="https://github.com/user-attachments/assets/65eeaa29-04cb-4001-b65c-abc81c872e4d" />
 
 Source code ts_encoder at "./proj_mod/training.py". 
 
-##### Decoder 
+* **Decoder**
+
 A custom decoder layer: 
 
 <img width="480" height="615" alt="image" src="https://github.com/user-attachments/assets/a71ef29d-9ea5-4e2c-bf07-4b20f3767320" />
 
 Source code ts_decoder at "./proj_mod/training.py". 
 
-##### Positional embedding by cross attention 
+* **Positional embedding by cross attention**
+
 A custom postional embedding layer to preserve positional signal in ordered input: 
 
 <img width="469" height="285" alt="image" src="https://github.com/user-attachments/assets/d65faf78-61b1-4cdb-85d0-8f8cab221594" />
@@ -151,7 +154,7 @@ A positional embedding is necessary because the property $`Attention(AQ,BK,BV)=A
 Here we discuss the models that only takes timeseries as input. 
 
 #### RNN timeseries based model 
-We first discuss the rnn based model for timesieres input. 
+We first discuss the rnn based model for timesieres input: 
 
 <img width="397" height="530" alt="image" src="https://github.com/user-attachments/assets/340d3ad1-4590-43b9-a228-882fd16f3ede" />
 
@@ -160,9 +163,21 @@ See detailed decumentation at "./NNetwork/RNN_with_frozen_conv.ipynb".
 #### Transformer timeseries based models 
 We now discuss the transformer based modle for timeseries input. 
 
-##### Encoder only transformer 
+* **Encoder only transformer**
 
-##### Encoder decoder teacher forcing transformer 
+The first mode is an encoder only transformer:
+
+<img width="256" height="416" alt="image" src="https://github.com/user-attachments/assets/2e0d63ea-52fb-4840-9433-4faf34e9482a" />
+
+Source code encoder_ensemble at "./NNetwork/training.py". 
+
+* **Encoder decoder teacher forcing transformer**
+
+The following is a transformer with both encoder and decoder: 
+
+<img width="267" height="464" alt="image" src="https://github.com/user-attachments/assets/6c69d2f5-1f1f-449b-ad1b-fa56a43b4cc0" />
+
+Source code encoder_decoder_teacherforcing at "./NNetwork/training.py". 
 
 ---
 
