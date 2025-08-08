@@ -75,6 +75,8 @@
 Martin Molina-Fructuoso, Yuan Zhang 
 
 ## Motivations 
+Volatility in the stock market captures the amount of fluctuation in the stock market, and, hence, is an important quantitative indicator in the financial market. 
+In This project, we seek to use data on stocks (identified with stock id) through different time id (each indicating a 10 mins time bucket) to predict the Realized Volatility in the immidiate next 10 mins after the time bucket of the time id. 
 
 ## ETL pipeline 
 
