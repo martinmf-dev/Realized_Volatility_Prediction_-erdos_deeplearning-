@@ -73,7 +73,7 @@
 * ./raw_data: The folder containing the raw data. This folder is ignored by git. 
 ## Contributers 
 
-Martin Molina-Fructuoso, Yuan Zhang 
+Martin Molina-Fructuoso (https://github.com/martinmf-dev), Yuan Zhang (https://github.com/YCoeusZ)
 
 ## Motivation
 
