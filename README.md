@@ -108,10 +108,15 @@ Pandas pivot is a key tool in RVdataset.
 
 ## Neural network models 
 
+### Frozen convolution layer for "derivative of timeseries" feature creation 
+Here we discuss the untrainable frozen convolution layer for creating "derivative of timeseries" features. 
+
 ### Timeseries based models 
 Here we discuss the models that only takes timeseries as input. 
 
 ### Adjustment models 
 Here we discuss the models that adjust the result produced by timesereies based models (referred as "base model" in this context) with tabular parameters that are used for parameter embedding distinguishing categories including time, stock, and row id. 
+
+## Fine tuning 
 
 ## Future 
