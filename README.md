@@ -110,9 +110,47 @@ Pandas pivot is a key tool in RVdataset.
 
 ### Frozen convolution layer for "derivative of timeseries" feature creation 
 Here we discuss the untrainable frozen convolution layer for creating "derivative of timeseries" features. 
+This layer applies tensor (-1,1) to produce "derivative feature" for a timeseries (and append 0 at the end). 
+As an example, input (1.,  2.,  3.,  1.,  2.,  3.,  1.,  2.,  3.) will have derivative (1.,  1., -2.,  1.,  1., -2.,  1.,  1.,  0.). 
+This process can be applied for several time to produce "$`n^{th}`$ derivative feature". 
+
+<img width="287" height="165" alt="image" src="https://github.com/user-attachments/assets/1a3fe006-1011-4dea-8a64-cfb065d0edb5" />
+
+This is a key layer that is used in all models to produce timeseries with "derivative" values. 
+See detail at "./NNetwork/Frozen_conv_layer.ipynb" for documentation.  
 
 ### Timeseries based models 
 Here we discuss the models that only takes timeseries as input. 
+#### RNN based model 
+<img width="397" height="530" alt="image" src="https://github.com/user-attachments/assets/340d3ad1-4590-43b9-a228-882fd16f3ede" />
+
+See detailed decumentation at "./NNetwork/RNN_with_frozen_conv.ipynb"
+#### Transformer based model 
+##### Encoder 
+A custom encoder layer: 
+
+<img width="386" height="458" alt="image" src="https://github.com/user-attachments/assets/65eeaa29-04cb-4001-b65c-abc81c872e4d" />
+
+Source code ts_encoder at "./proj_mod/training.py". 
+
+##### Decoder 
+A custom decoder layer: 
+
+<img width="480" height="615" alt="image" src="https://github.com/user-attachments/assets/a71ef29d-9ea5-4e2c-bf07-4b20f3767320" />
+
+Source code ts_decoder at "./proj_mod/training.py". 
+
+##### Positional embedding by cross attention 
+A custom postional embedding layer to preserve positional signal in ordered input: 
+
+<img width="435" height="294" alt="image" src="https://github.com/user-attachments/assets/b899c394-bd38-4bb6-b563-933c86a704ff" />
+
+Source code pos_emb_cross_attn at "./proj_mod/training.py". 
+A positional embedding is necessary because the property $`Attention(AQ,BK,BV)=A\ Attention(Q,K,V)`$, intuitively, this means that attention layer is "permutation equivariant in respect to rows of Q", meaning changing the order of element of elements in timeseries input at Q does not change the output. So we will need to keep the signal of position somehow. See a detailed reasonaing at "./NNetwork/Transformer_wtih_frozen_conv_1.ipynb". 
+
+##### Encoder only transformer 
+
+##### Encoder decoder teacher forcing transformer 
 
 ### Adjustment models 
 Here we discuss the models that adjust the result produced by timesereies based models (referred as "base model" in this context) with tabular parameters that are used for parameter embedding distinguishing categories including time, stock, and row id. 
