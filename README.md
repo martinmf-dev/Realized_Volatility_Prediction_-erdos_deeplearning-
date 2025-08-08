@@ -107,7 +107,7 @@ Pandas pivot is a key tool in RVdataset.
 ## Base line model 
 
 ## Neural network models 
-
+---
 ### Frozen convolution layer for "derivative of timeseries" feature creation 
 Here we discuss the untrainable frozen convolution layer for creating "derivative of timeseries" features. 
 This layer applies tensor (-1,1) to produce "derivative feature" for a timeseries (and append 0 at the end). 
@@ -119,13 +119,10 @@ This process can be applied for several time to produce "$`n^{th}`$ derivative f
 This is a key layer that is used in all models to produce timeseries with "derivative" values. 
 See detail at "./NNetwork/Frozen_conv_layer.ipynb" for documentation.  
 
-### Timeseries based models 
-Here we discuss the models that only takes timeseries as input. 
-#### RNN based model 
-<img width="397" height="530" alt="image" src="https://github.com/user-attachments/assets/340d3ad1-4590-43b9-a228-882fd16f3ede" />
+---
+### Transformer building blocks  
+Here we discuss the custom transformer based building blocks. 
 
-See detailed decumentation at "./NNetwork/RNN_with_frozen_conv.ipynb"
-#### Transformer based model 
 ##### Encoder 
 A custom encoder layer: 
 
@@ -143,14 +140,31 @@ Source code ts_decoder at "./proj_mod/training.py".
 ##### Positional embedding by cross attention 
 A custom postional embedding layer to preserve positional signal in ordered input: 
 
-<img width="435" height="294" alt="image" src="https://github.com/user-attachments/assets/b899c394-bd38-4bb6-b563-933c86a704ff" />
+<img width="469" height="285" alt="image" src="https://github.com/user-attachments/assets/d65faf78-61b1-4cdb-85d0-8f8cab221594" />
 
 Source code pos_emb_cross_attn at "./proj_mod/training.py". 
 A positional embedding is necessary because the property $`Attention(AQ,BK,BV)=A\ Attention(Q,K,V)`$, intuitively, this means that attention layer is "permutation equivariant in respect to rows of Q", meaning changing the order of element of elements in timeseries input at Q does not change the output. So we will need to keep the signal of position somehow. See a detailed reasonaing at "./NNetwork/Transformer_wtih_frozen_conv_1.ipynb". 
 
+---
+
+### Timeseries based models 
+Here we discuss the models that only takes timeseries as input. 
+
+#### RNN timeseries based model 
+We first discuss the rnn based model for timesieres input. 
+
+<img width="397" height="530" alt="image" src="https://github.com/user-attachments/assets/340d3ad1-4590-43b9-a228-882fd16f3ede" />
+
+See detailed decumentation at "./NNetwork/RNN_with_frozen_conv.ipynb". 
+
+#### Transformer timeseries based models 
+We now discuss the transformer based modle for timeseries input. 
+
 ##### Encoder only transformer 
 
 ##### Encoder decoder teacher forcing transformer 
+
+---
 
 ### Adjustment models 
 Here we discuss the models that adjust the result produced by timesereies based models (referred as "base model" in this context) with tabular parameters that are used for parameter embedding distinguishing categories including time, stock, and row id. 
