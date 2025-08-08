@@ -54,7 +54,7 @@
 * ./EDA: Decomented EDA experiments.
 * ./ETLpipeline:
   - Default_Extract_Transform.py: The Default extract and transform pipeline that collect, extract, and transform the data and save the processed data in "./processed_data".
-  - Loading_Example.ipynb: An example of using pytorch Dataset subclass with pytorch dataloader for data loading.
+  - Loading_Example.ipynb: An example of using pytorch Dataset subclass (RVdataset) with pytorch dataloader for data loading.
 * ./model_data: The saves model weights.
 * ./NNetwork: All Neural Network model source code are kept in "./proj_mod/training.py". 
   - Decoder_transformer.ipynb: Documentation on Transformer models with both encoder and decoder layers.
@@ -72,13 +72,33 @@
   - visualization.py: Code on visualization.
 * ./raw_data: The folder containing the raw data. 
 ## Contributers 
+
 Martin Molina-Fructuoso, Yuan Zhang 
 
-## Motivations 
+## Motivation
+
 Volatility in the stock market captures the amount of fluctuation in the stock market, and, hence, is an important quantitative indicator in the financial market. 
-In This project, we seek to use data on stocks (identified with stock id) through different time id (each indicating a 10 mins time bucket) to predict the Realized Volatility in the immidiate next 10 mins after the time bucket of the time id. 
+In this project, we seek to use data on stocks (identified with stock id) through different time id (each indicating a 10 mins time bucket) to predict the Realized Volatility in the immidiate next 10 mins after the time bucket of the time id. 
+This project orignates in kaggle competition (https://www.kaggle.com/competitions/optiver-realized-volatility-prediction). 
+
+Practicing pytorch and pandas (with sql lik querying logic) is one of the key goals of this project. 
 
 ## ETL pipeline 
+
+One can run the py file "./ETLpipeline/Default_Extract_Transform.py" to download raw data from kaggle, and then extract and transform raw data into processed data that will be used in model training. This process contains, in order: 
+
+* Downloading raw data from kaggle, see "./data_collecting/data_collecting_kaggle.ipynb" for detailed documentation.
+* Recovering time id order, see "./data_processing/understanding_time_id_recovery.ipynb" for detailed documentation. The credit of this part goes to https://www.kaggle.com/code/stassl/recovering-time-id-order and https://www.kaggle.com/competitions/optiver-realized-volatility-prediction/writeups/nyanp-1st-place-solution-nearest-neighbors.
+* Creating Realized Volatility from raw book data, see "./data_processing/data_processing_functions.ipynb" for detailed documentation.
+* Creating processed trade data from raw trade data, see "./data_processing/data_processing_functions.ipynb" for detailed documentation.
+* Creating timeseries data from raw book data, see "./data_processing/data_processing_functions.ipynb" for detailed documentation.
+
+Python pandas with sql style querying logic (e.g. merge, groupby, aggregate, window functions, and etc), and joblib parallel and delayed functions proved valuable in the process of extracting and transforming data. 
+
+To see an example of loading the data for training use, see "./ETLpipeline/Loading_Example.ipynb". The main components include: 
+
+* Using the RVdataset pytorch Dataset subclass to initialize a pytorch Dataset object for pytorch dataloader. See "./data_processing/create_datasets.ipynb" for detailed documention, the source code is stored in "./proj_mod/training.py".
+* Loading the values for training use by feeding the prepared pytorch dataloader to custom made training loop reg_training_loop_rmspe stored in "./proj_mod/training.py" as a paremeter. 
 
 ## EDA 
 
