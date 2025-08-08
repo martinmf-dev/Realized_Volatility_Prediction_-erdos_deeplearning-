@@ -1,9 +1,11 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt 
+import os
 
-def training_plots(results_dict, titles=None, fig_width=15, subplot_aspect_ratio=0.75):
+def training_plots(results_dict, titles=None, fig_width=15, subplot_aspect_ratio=0.75, save_path=None):
     # 07/21/2025 Created
+    # 08/07/2025 Adds option to save figure
     """
     Plots the training and validation loss for a dictionary of runs of models with keys (rnn,h0). 
     Each item in results_dict is a dictionary itself with keys "train_loss" and "val_los" 
@@ -50,8 +52,8 @@ def training_plots(results_dict, titles=None, fig_width=15, subplot_aspect_ratio
         vl = to_cpu_list(run_data["val_loss"])
         x = np.arange(len(tl))
         
-        ax.scatter(x, tl, c="blue", marker='+', s=60, linewidths=1.5, label="Train")
-        ax.scatter(x, vl, c="orange", marker='+', s=60, linewidths=1.5, label="Val")
+        ax.scatter(x, tl, c="blue", marker='+', s=100, linewidths=1.5, label="Train")
+        ax.scatter(x, vl, c="orange", marker='+', s=100, linewidths=1.5, label="Val")
 
         ax.set_title(titles[idx])
 
@@ -67,4 +69,10 @@ def training_plots(results_dict, titles=None, fig_width=15, subplot_aspect_ratio
         fig.delaxes(axes[i][j])
 
     fig.suptitle("Training and Validation Loss", fontsize=16)
+
+
+    if save_path is not None:
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        fig.savefig(save_path, format="png")
+
     plt.show()
