@@ -237,3 +237,9 @@ Source code class multi_adj_by_attd at "./proj_mod/training.py". See detailed do
 ## Fine tuning 
 
 ## Future 
+
+## Citations 
+* Attention is all you need: https://arxiv.org/pdf/1706.03762
+* Kaggle competition: https://www.kaggle.com/competitions/optiver-realized-volatility-prediction
+* Kaggle competition top solution: https://www.kaggle.com/competitions/optiver-realized-volatility-prediction/writeups/nyanp-1st-place-solution-nearest-neighbors
+* Kaggle forum recovering time id order: https://www.kaggle.com/code/stassl/recovering-time-id-order
