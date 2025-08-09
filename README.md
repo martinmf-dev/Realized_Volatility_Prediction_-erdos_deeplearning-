@@ -158,6 +158,8 @@ We first discuss the rnn based model for timesieres input:
 
 <img width="397" height="530" alt="image" src="https://github.com/user-attachments/assets/340d3ad1-4590-43b9-a228-882fd16f3ede" />
 
+Best loss for rnn: (fill in); Best loss for lstm: (fill in); Best loss for gru: (fill in)
+
 Source code RV_RNN_conv at "./proj_mod/training.py". See detailed decumentation at "./NNetwork/RNN_with_frozen_conv.ipynb". 
 
 #### Transformer timeseries based models 
@@ -169,6 +171,8 @@ The first mode is an encoder only transformer:
 
 <img width="256" height="416" alt="image" src="https://github.com/user-attachments/assets/2e0d63ea-52fb-4840-9433-4faf34e9482a" />
 
+Best loss: (fill in)
+
 Source code encoder_ensemble at "./NNetwork/training.py". See detailed documentation at "./NNetwork/Transformer_with_frozen_conv_1.ipynb". 
 
 * **Encoder decoder teacher forcing transformer**
@@ -176,6 +180,8 @@ Source code encoder_ensemble at "./NNetwork/training.py". See detailed documenta
 The following is a transformer with both encoder and decoder: 
 
 <img width="267" height="464" alt="image" src="https://github.com/user-attachments/assets/6c69d2f5-1f1f-449b-ad1b-fa56a43b4cc0" />
+
+Best loss: (fill in)
 
 Source code encoder_decoder_teacherforcing at "./NNetwork/training.py". 
 
@@ -195,6 +201,8 @@ We simply pre-appended the embedded emb id infront of the timeseries:
 
 <img width="502" height="409" alt="image" src="https://github.com/user-attachments/assets/ba193a74-bfc9-427e-ae7b-8fb2d37c345f" />
 
+Best loss: (fill in)
+
 See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
 
 * Adjustment by multiplication
@@ -202,6 +210,8 @@ See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb".
 We have a sub network that works on the embedded emb id to create a scalar adjuster: 
 
 <img width="502" height="328" alt="image" src="https://github.com/user-attachments/assets/570ab36c-4bc8-4f27-82a1-2c1a31ffed7c" />
+
+Best loss: (fill in)
 
 Source code id_learned_embedding_adj_rnn_mtpl at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
 
@@ -211,9 +221,18 @@ We have a sub model produce a vector pre-adjuster which we will use as Key and V
 
 <img width="551" height="694" alt="image" src="https://github.com/user-attachments/assets/55a87e7a-6459-41c5-bbf5-214b9e92cb6e" />
 
+Best loss: (fill in) Using base model: (fill in) 
+
 Source code class id_learned_embedding_attend_rnn at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
 
 #### Adjustment with row id, stock id, and time id 
+We constructed a model that has capibility to adjust the timeseries base model output with any subset of row id, stock id, time id, and emb id: 
+
+<img width="697" height="606" alt="image" src="https://github.com/user-attachments/assets/738a5832-e46a-4621-988d-3ddc3314943b" />
+
+Best loss: (fill in) Using base model: (fill in) 
+
+Source code class multi_adj_by_attd at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Parameter_embedding.ipynb". 
 
 ## Fine tuning 
 
