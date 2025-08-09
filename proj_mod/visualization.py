@@ -76,3 +76,64 @@ def training_plots(results_dict, titles=None, fig_width=15, subplot_aspect_ratio
         fig.savefig(save_path, format="png")
 
     plt.show()
+
+def study_plots(study, param_for_scatter="lr", title_prefix="Optuna"):
+    # 08/09/2025 Created
+    """
+    Plot progress for an Optuna Study:
+      1) Best-so-far curve (trial vs best RMSPE so far)
+      2) Trial values + best-so-far overlay
+      3) Optional: param vs RMSPE scatter (log x if param looks like lr)
+
+    Args:
+        study: optuna.Study
+        param_for_scatter: str or None, e.g. "lr"
+        title_prefix: str for plot titles
+    """
+    # Completed trials only, sorted by trial number
+    trials_complete = [t for t in study.trials if t.value is not None and t.state.name == "COMPLETE"]
+    trials_complete.sort(key=lambda t: t.number)
+
+    if not trials_complete:
+        print("No completed trials to plot.")
+        return
+
+    trials = [t.number for t in trials_complete]
+    values = [t.value for t in trials_complete]
+
+    # Best-so-far
+    best_so_far = []
+    cur = float("inf")
+    for v in values:
+        cur = min(cur, v)
+        best_so_far.append(cur)
+
+
+    # val loss + best-so-far val loss
+    plt.figure(figsize=(8, 5))
+    plt.plot(trials, values, marker='o', label="Validation Loss")
+    plt.plot(trials, best_so_far, marker='o', label="Best Validation Loss so far")
+    plt.xlabel("Trial")
+    plt.ylabel("Validation Loss")
+    plt.title(f" Validation Loss and Best Validation Loss ({title_prefix})")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    #  Optional: param vs val loss
+    if param_for_scatter:
+        have_param = [param_for_scatter in t.params for t in trials_complete]
+        if any(have_param):
+            xs = [t.params[param_for_scatter] for t in trials_complete if param_for_scatter in t.params]
+            ys = [t.value for t in trials_complete if param_for_scatter in t.params]
+            plt.figure(figsize=(8, 5))
+            plt.scatter(xs, ys, alpha=0.6)
+            if "lr" in param_for_scatter.lower():
+                plt.xscale("log")
+                plt.xlabel(f"{param_for_scatter} (log scale)")
+            else:
+                plt.xlabel(param_for_scatter)
+            plt.ylabel("Validation Loss")
+            plt.title(f"{param_for_scatter} vs Validation Loss ({title_prefix})")
+            plt.grid(True, which="both")
+            plt.show()
