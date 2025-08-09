@@ -1,6 +1,6 @@
 # Realized Volatility Prediction 
 
-## Folder and file organization 
+## Folder and file organization (fill in)
 <pre>
   .
   ├── data_collecting 
@@ -40,7 +40,7 @@
   └── raw_data 
 </pre>
 
-## Folder and file explanations 
+## Folder and file explanations (fill in)
 
 * ./data_collecting: Contains instruction and code for downloading raw data from kaggle.
 * ./data_processing:
@@ -83,6 +83,16 @@ This project orignates in kaggle competition (https://www.kaggle.com/competition
 
 Practicing pytorch and pandas (with sql lik querying logic) is one of the key goals of this project. 
 
+## Necessary packages 
+The following are absolutely necessary python packages needed for this project (extreme common packages like sys, os, numpy, and so on will not be listed) (fill in): 
+* kaggle (for downloading raw data)
+* pandas (for data extraction and transformation)
+* pytorch (for data loading, model creation, and training; Depending on your GPU hardware, the detailed set up of pytorch, cuda, and (or) rocm might alter greatly)
+* optuna (for fine tuning)
+* sklearn, statsmodel, pingouin, scipy (for EDA, and base line model)
+* matplotlib (for visualization)
+* joblib (for parallel computing) 
+
 ## ETL pipeline 
 
 One can run the py file "./ETLpipeline/Default_Extract_Transform.py" to download raw data from kaggle, and then extract and transform raw data into processed data that will be used in model training. This process contains, in order: 
@@ -102,9 +112,8 @@ To see an example of loading the data for training use, see "./ETLpipeline/Loadi
 
 Pandas pivot is a key tool in RVdataset. 
 
-## EDA 
-
 ## Base line model 
+(fill in)
 
 ## Neural network models 
 ---
@@ -173,17 +182,17 @@ The first mode is an encoder only transformer:
 
 Best loss: (fill in)
 
-Source code encoder_ensemble at "./NNetwork/training.py". See detailed documentation at "./NNetwork/Transformer_with_frozen_conv_1.ipynb". 
+Source code encoder_ensemble at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Transformer_with_frozen_conv_1.ipynb". 
 
 * **Encoder decoder teacher forcing transformer**
 
-The following is a transformer with both encoder and decoder: 
+The following is a transformer with both encoder and decoder, we will use the self attention encoder ouput of the input timesereis as the ground target "teacher" (since we do not have a connecting timeseries): 
 
-<img width="267" height="464" alt="image" src="https://github.com/user-attachments/assets/6c69d2f5-1f1f-449b-ad1b-fa56a43b4cc0" />
+<img width="234" height="562" alt="image" src="https://github.com/user-attachments/assets/2c38d43d-8cae-4466-8daa-129201fe84c5" />
 
 Best loss: (fill in)
 
-Source code encoder_decoder_teacherforcing at "./NNetwork/training.py". 
+Source code encoder_decoder_teacherforcing at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Decoder_transformer.ipynb", where an explanation on casual masking is detailed as well. 
 
 ---
 
@@ -235,8 +244,16 @@ Best loss: (fill in) Using base model: (fill in)
 Source code class multi_adj_by_attd at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Parameter_embedding.ipynb". 
 
 ## Fine tuning 
+(fill in)
 
 ## Future 
+As of August 10th, this project is 3 month in age. Both contributors have honed their skills and understanding in data transformation and machine learning with pytorch. 
+Both contributors feel that they are just getting started and there are many things to do to keep improving the models (fill in): 
+* As of now, most models uses feed forward layers mostly composed of custom made encoder and decoders, or nn.Linear. The contributors want to investigate further into useing certain alternatives including convolutions, especially for the data with larger dimensions.
+* As of now, the model that is adjusted with all of row id, stock id, time id, and emb id is over training very fast (Although, it has very good validation loss). This indicates bad regularization, and possibly noizy input parameters, the contributers want to investigate into implimenting methods to change this: increasing dropout, changing weight decay of optimizer (kind of an analog of ridge (L2) regression for our context), methods to reduce input parameters (like lasso (L1) regression in the context of linear regression), and so on. 
+* Adjusting the teacher forcing model further: Currently, the teacher forcing model uses the encoder output as both the encoder memory and the ground target (the "teacher"), the contributers want to investigate into cutting the input timeseries in the middle, and use the first as "true input" and the second half as the "teacher".
+* Investigate further into fine tuning methods.
+* Find improved methods for processing the data: pandas is a great tool, but the contributers have noticed its speed issue when haddling massive amount of data, even when running under parallel. So contributors want to investigate further into otherwise methods to improve this, for instance, using tools that are designed for big data (for instance, pyspark, and so on). 
 
 ## Citations 
 * Attention is all you need: https://arxiv.org/pdf/1706.03762
