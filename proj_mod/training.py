@@ -846,6 +846,20 @@ class ts_encoder(nn.Module):
         
 # Sequence creating decoder 
 
+def ts_shift_right(ts,bos_v):
+    """
+    A function that shifts ts (shape (Batch, Length, timestep dimension)) to the right (along Length dimension) by replacing the index zero if length with bosv and index i's tensor of length with index i-1's tensor. 
+    
+    :param ts: The input timeseries to be operated on. 
+    :param bos_v: The replacement BOS (begin of sequence) tensor. Must be of shape (timestep dimension). 
+    :return: The desired shifted timeseries. 
+    """
+    B,_,D=ts.size 
+    if bos_v.shape[-1]!=D: 
+        raise ValueError("bos_v dimension is not time step dimension.") 
+    v=bos_v.unsqueeze(0).unsqueeze(0).expand(B,1,D)
+    return torch.cat((v,ts[:,:-1,:]),dim=1)
+
 class ts_decoder(nn.Module): 
     #Created 07/29/25
     #Modified 08/06/25: Added deepcopy to fix unintended recursive feedforward layers. 
@@ -879,12 +893,17 @@ class ts_decoder(nn.Module):
     def forward(self,
                 ground_target,
                 encoder_memory,
-                ground_target_mask=None): 
+                ground_target_mask=None, 
+                shift_gt_right=False): 
         """
         :param ground_target: The ground target. 
         :param encoder_memory: The memory from encoder. 
         :param ground_target_mask: Defaulted to None. The mask used. 
+        :param shift_gt_right: Defaulted to False. Decides if one shifts the ground target to the right before feeding it into the first self attention layer. 
         """
+        if shift_gt_right:
+            bos_v=torch.zeros(ground_target.shape[-1]) 
+            ground_target=ts_shift_right(ts=ground_target,bos_v=bos_v)
         self_attn,_=self.decoder_self_attn(ground_target,ground_target,ground_target,attn_mask=ground_target_mask) 
         if self.keep_mag: 
             ground_target=(ground_target+self_attn+self.decoder_norm1(ground_target+self_attn))/2 
