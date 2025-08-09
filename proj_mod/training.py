@@ -1114,7 +1114,7 @@ class encoder_decoder_teacherforcing(nn.Module):
     def forward(self,x,ground_target=None):
         """
         :param x: The input sequence. 
-        :param ground_target: Defaulted to None. Will be subbed to x if kept None. 
+        :param ground_target: Defaulted to None. Will be subbed to self attention output of x if kept None. 
         """
         #Adjust input 
         x*=self.input_scaler
