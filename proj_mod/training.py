@@ -854,7 +854,7 @@ def ts_shift_right(ts,bos_v):
     :param bos_v: The replacement BOS (begin of sequence) tensor. Must be of shape (timestep dimension). 
     :return: The desired shifted timeseries. 
     """
-    B,_,D=ts.size 
+    B,_,D=ts.shape
     if bos_v.shape[-1]!=D: 
         raise ValueError("bos_v dimension is not time step dimension.") 
     v=bos_v.unsqueeze(0).unsqueeze(0).expand(B,1,D)
