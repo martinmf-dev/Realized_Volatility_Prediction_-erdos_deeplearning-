@@ -237,7 +237,7 @@ Source code class id_learned_embedding_attend_rnn at "./proj_mod/training.py". S
 #### Adjustment with row id, stock id, and time id 
 We constructed a model that has capibility to adjust the timeseries base model output with any subset of row id, stock id, time id, and emb id: 
 
-<img width="697" height="606" alt="image" src="https://github.com/user-attachments/assets/738a5832-e46a-4621-988d-3ddc3314943b" />
+<img width="711" height="619" alt="image" src="https://github.com/user-attachments/assets/47ea76ca-d15b-4542-b3c0-6acaad9f19ad" />
 
 Best loss: (fill in) Using base model: (fill in) 
 
