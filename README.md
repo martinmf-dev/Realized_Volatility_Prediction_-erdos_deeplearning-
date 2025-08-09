@@ -249,7 +249,7 @@ Source code class multi_adj_by_attd at "./proj_mod/training.py". See detailed do
 (fill in)
 
 ## Future 
-As of August 10th, this project is 3 month in age. Both contributors have honed their skills and understanding in data transformation and machine learning with pytorch. 
+As of August 10th of 2025, this project is 3 month in age. Both contributors have honed their skills and understanding in data transformation and machine learning with pytorch. 
 Both contributors feel that they are just getting started and there are many things to do to keep improving the models (fill in): 
 * As of now, most models uses feed forward layers mostly composed of custom made encoder and decoders, or nn.Linear. The contributors want to investigate further into useing certain alternatives including convolutions, especially for the data with larger dimensions.
 * As of now, the model that is adjusted with all of row id, stock id, time id, and emb id is over training very fast (Although, it has very good validation loss). This indicates bad regularization, and possibly noizy input parameters, the contributers want to investigate into implimenting methods to change this: increasing dropout, changing weight decay of optimizer (kind of an analog of ridge (L2) regression for our context), methods to reduce input parameters (like lasso (L1) regression in the context of linear regression), and so on. 
