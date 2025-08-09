@@ -107,16 +107,139 @@ Pandas pivot is a key tool in RVdataset.
 ## Base line model 
 
 ## Neural network models 
-
+---
 ### Frozen convolution layer for "derivative of timeseries" feature creation 
 Here we discuss the untrainable frozen convolution layer for creating "derivative of timeseries" features. 
+This layer applies tensor (-1,1) to produce "derivative feature" for a timeseries (and append 0 at the end). 
+As an example, input (1.,  2.,  3.,  1.,  2.,  3.,  1.,  2.,  3.) will have derivative (1.,  1., -2.,  1.,  1., -2.,  1.,  1.,  0.). 
+This process can be applied for several time to produce "$`n^{th}`$ derivative feature". 
+
+<img width="287" height="165" alt="image" src="https://github.com/user-attachments/assets/1a3fe006-1011-4dea-8a64-cfb065d0edb5" />
+
+This is a key layer that is used in all models to produce timeseries with "derivative" values. 
+See detail at "./NNetwork/Frozen_conv_layer.ipynb" for documentation.  
+
+---
+### Transformer building blocks  
+Here we discuss the custom transformer based building blocks. 
+
+* **Encoder**
+
+A custom encoder layer: 
+
+<img width="386" height="458" alt="image" src="https://github.com/user-attachments/assets/65eeaa29-04cb-4001-b65c-abc81c872e4d" />
+
+Source code ts_encoder at "./proj_mod/training.py". 
+
+* **Decoder**
+
+A custom decoder layer: 
+
+<img width="480" height="615" alt="image" src="https://github.com/user-attachments/assets/a71ef29d-9ea5-4e2c-bf07-4b20f3767320" />
+
+Source code ts_decoder at "./proj_mod/training.py". 
+
+* **Positional embedding by cross attention**
+
+A custom postional embedding layer to preserve positional signal in ordered input: 
+
+<img width="469" height="285" alt="image" src="https://github.com/user-attachments/assets/d65faf78-61b1-4cdb-85d0-8f8cab221594" />
+
+Source code pos_emb_cross_attn at "./proj_mod/training.py". 
+A positional embedding is necessary because the property $`Attention(AQ,BK,BV)=A\ Attention(Q,K,V)`$, intuitively, this means that attention layer is "permutation equivariant in respect to rows of Q", meaning changing the order of element of elements in timeseries input at Q does not change the output. So we will need to keep the signal of position somehow. See a detailed reasonaing at "./NNetwork/Transformer_wtih_frozen_conv_1.ipynb". 
+
+---
 
 ### Timeseries based models 
 Here we discuss the models that only takes timeseries as input. 
 
+#### RNN timeseries based model 
+We first discuss the rnn based model for timesieres input: 
+
+<img width="397" height="530" alt="image" src="https://github.com/user-attachments/assets/340d3ad1-4590-43b9-a228-882fd16f3ede" />
+
+Best loss for rnn: (fill in); Best loss for lstm: (fill in); Best loss for gru: (fill in)
+
+Source code RV_RNN_conv at "./proj_mod/training.py". See detailed decumentation at "./NNetwork/RNN_with_frozen_conv.ipynb". 
+
+#### Transformer timeseries based models 
+We now discuss the transformer based modle for timeseries input. 
+
+* **Encoder only transformer**
+
+The first mode is an encoder only transformer:
+
+<img width="256" height="416" alt="image" src="https://github.com/user-attachments/assets/2e0d63ea-52fb-4840-9433-4faf34e9482a" />
+
+Best loss: (fill in)
+
+Source code encoder_ensemble at "./NNetwork/training.py". See detailed documentation at "./NNetwork/Transformer_with_frozen_conv_1.ipynb". 
+
+* **Encoder decoder teacher forcing transformer**
+
+The following is a transformer with both encoder and decoder: 
+
+<img width="267" height="464" alt="image" src="https://github.com/user-attachments/assets/6c69d2f5-1f1f-449b-ad1b-fa56a43b4cc0" />
+
+Best loss: (fill in)
+
+Source code encoder_decoder_teacherforcing at "./NNetwork/training.py". 
+
+---
+
 ### Adjustment models 
 Here we discuss the models that adjust the result produced by timesereies based models (referred as "base model" in this context) with tabular parameters that are used for parameter embedding distinguishing categories including time, stock, and row id. 
+
+#### Adjustment with only stock id (discrete learned embedding): 
+As a proof of concept, we first limited to only adjusting with the stock id with discrete learned embedding. 
+To acheive discrete learned embedding efficiently, we first created emb id (i.e. embedding id) to replace the stock id. 
+The only difference between emb id and stock id is that embd id is a list of integer with no "gape" while stock id does jump over some integers. 
+
+* Adjustment by pre-appending
+
+We simply pre-appended the embedded emb id infront of the timeseries: 
+
+<img width="502" height="409" alt="image" src="https://github.com/user-attachments/assets/ba193a74-bfc9-427e-ae7b-8fb2d37c345f" />
+
+Best loss: (fill in)
+
+See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
+
+* Adjustment by multiplication
+
+We have a sub network that works on the embedded emb id to create a scalar adjuster: 
+
+<img width="502" height="328" alt="image" src="https://github.com/user-attachments/assets/570ab36c-4bc8-4f27-82a1-2c1a31ffed7c" />
+
+Best loss: (fill in)
+
+Source code id_learned_embedding_adj_rnn_mtpl at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
+
+* An adjustment with cross attention
+
+We have a sub model produce a vector pre-adjuster which we will use as Key and Value in a cross attention layer with the base model output as the Query, the output of this cross attention layer is then used as the adjuster: 
+
+<img width="551" height="694" alt="image" src="https://github.com/user-attachments/assets/55a87e7a-6459-41c5-bbf5-214b9e92cb6e" />
+
+Best loss: (fill in) Using base model: (fill in) 
+
+Source code class id_learned_embedding_attend_rnn at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
+
+#### Adjustment with row id, stock id, and time id 
+We constructed a model that has capibility to adjust the timeseries base model output with any subset of row id, stock id, time id, and emb id: 
+
+<img width="697" height="606" alt="image" src="https://github.com/user-attachments/assets/738a5832-e46a-4621-988d-3ddc3314943b" />
+
+Best loss: (fill in) Using base model: (fill in) 
+
+Source code class multi_adj_by_attd at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Parameter_embedding.ipynb". 
 
 ## Fine tuning 
 
 ## Future 
+
+## Citations 
+* Attention is all you need: https://arxiv.org/pdf/1706.03762
+* Kaggle competition: https://www.kaggle.com/competitions/optiver-realized-volatility-prediction
+* Kaggle competition top solution: https://www.kaggle.com/competitions/optiver-realized-volatility-prediction/writeups/nyanp-1st-place-solution-nearest-neighbors
+* Kaggle forum recovering time id order: https://www.kaggle.com/code/stassl/recovering-time-id-order
