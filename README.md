@@ -116,6 +116,7 @@ Pandas pivot is a key tool in RVdataset.
 (fill in)
 
 ## Neural network models 
+The following is a summary of the models in their default settings, many of the models, in reality, offers much more flexibility to be altered. 
 ---
 ### Frozen convolution layer for "derivative of timeseries" feature creation 
 Here we discuss the untrainable frozen convolution layer for creating "derivative of timeseries" features. 
