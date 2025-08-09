@@ -158,7 +158,7 @@ We first discuss the rnn based model for timesieres input:
 
 <img width="397" height="530" alt="image" src="https://github.com/user-attachments/assets/340d3ad1-4590-43b9-a228-882fd16f3ede" />
 
-See detailed decumentation at "./NNetwork/RNN_with_frozen_conv.ipynb". 
+Source code RV_RNN_conv at "./proj_mod/training.py". See detailed decumentation at "./NNetwork/RNN_with_frozen_conv.ipynb". 
 
 #### Transformer timeseries based models 
 We now discuss the transformer based modle for timeseries input. 
@@ -169,7 +169,7 @@ The first mode is an encoder only transformer:
 
 <img width="256" height="416" alt="image" src="https://github.com/user-attachments/assets/2e0d63ea-52fb-4840-9433-4faf34e9482a" />
 
-Source code encoder_ensemble at "./NNetwork/training.py". 
+Source code encoder_ensemble at "./NNetwork/training.py". See detailed documentation at "./NNetwork/Transformer_with_frozen_conv_1.ipynb". 
 
 * **Encoder decoder teacher forcing transformer**
 
@@ -183,6 +183,37 @@ Source code encoder_decoder_teacherforcing at "./NNetwork/training.py".
 
 ### Adjustment models 
 Here we discuss the models that adjust the result produced by timesereies based models (referred as "base model" in this context) with tabular parameters that are used for parameter embedding distinguishing categories including time, stock, and row id. 
+
+#### Adjustment with only stock id (discrete learned embedding): 
+As a proof of concept, we first limited to only adjusting with the stock id with discrete learned embedding. 
+To acheive discrete learned embedding efficiently, we first created emb id (i.e. embedding id) to replace the stock id. 
+The only difference between emb id and stock id is that embd id is a list of integer with no "gape" while stock id does jump over some integers. 
+
+* Adjustment by pre-appending
+
+We simply pre-appended the embedded emb id infront of the timeseries: 
+
+<img width="502" height="409" alt="image" src="https://github.com/user-attachments/assets/ba193a74-bfc9-427e-ae7b-8fb2d37c345f" />
+
+See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
+
+* Adjustment by multiplication
+
+We have a sub network that works on the embedded emb id to create a scalar adjuster: 
+
+<img width="502" height="328" alt="image" src="https://github.com/user-attachments/assets/570ab36c-4bc8-4f27-82a1-2c1a31ffed7c" />
+
+Source code id_learned_embedding_adj_rnn_mtpl at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
+
+* An adjustment with cross attention
+
+We have a sub model produce a vector pre-adjuster which we will use as Key and Value in a cross attention layer with the base model output as the Query, the output of this cross attention layer is then used as the adjuster: 
+
+<img width="551" height="694" alt="image" src="https://github.com/user-attachments/assets/55a87e7a-6459-41c5-bbf5-214b9e92cb6e" />
+
+Source code class id_learned_embedding_attend_rnn at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
+
+#### Adjustment with row id, stock id, and time id 
 
 ## Fine tuning 
 
