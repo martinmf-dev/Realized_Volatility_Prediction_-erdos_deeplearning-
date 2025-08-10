@@ -185,7 +185,7 @@ Source code ts_encoder at "./proj_mod/training.py".
 
 * **Decoder**
 
-A custom decoder layer: 
+A custom decoder layer, it offers options for masking in the first self attention layer, and (or) performing shifting right on the groud target: 
 
 <img width="480" height="615" alt="image" src="https://github.com/user-attachments/assets/a71ef29d-9ea5-4e2c-bf07-4b20f3767320" />
 
@@ -229,7 +229,7 @@ Source code encoder_ensemble at "./proj_mod/training.py". See detailed documenta
 
 * **Encoder decoder teacher forcing transformer**
 
-The following is a transformer with both encoder and decoder, we will use the self attention encoder ouput of the input timesereis as the ground target "teacher" (since we do not have a connecting timeseries): 
+The following is a transformer with both encoder and decoder, we will use the self attention encoder ouput of the input timesereis as the ground target "teacher" with no shifting and casual masking (since we do not have a connecting timeseries): 
 
 <img width="234" height="562" alt="image" src="https://github.com/user-attachments/assets/2c38d43d-8cae-4466-8daa-129201fe84c5" />
 
