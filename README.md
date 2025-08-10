@@ -210,7 +210,7 @@ We first discuss the rnn based model for timeseries input:
 
 <img width="397" height="530" alt="image" src="https://github.com/user-attachments/assets/340d3ad1-4590-43b9-a228-882fd16f3ede" />
 
-Best loss for rnn: (0.2348); Best loss for lstm: (0.2301)
+Best loss for rnn: (0.2348); Best loss for lstm: (0.2301); Best loss for gru: (0.2308)
 
 Source code RV_RNN_conv at "./proj_mod/training.py". See detailed decumentation at "./NNetwork/RNN_with_frozen_conv.ipynb". 
 
