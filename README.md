@@ -114,8 +114,29 @@ Pandas pivot is a key tool in RVdataset.
 
 ## Base line model 
 
-We have level 2 order book for 112 stocks identified by an integer(stock_id) and millions of instants distributed in intervals of 10 minutes. The point in time where a given 10 minute period starts is identified by an integer (time_id) and the specific points in time for the data in a given 10-minute interval are identified by integers (seconds_in_bucket). One way to approximate the price of a stock at a given instant is a (Weighted Average Price), which we define as:
-WAP = ((bid_price1)*(ask_size1)+(ask_price1)*(bid_size1))/((bid_size1)+(ask_size1))
+We have level 2 order book for 112 stocks identified by an integer(stock_id) and millions of instants distributed in intervals of 10 minutes. The point in time where a given 10 minute period starts is identified by an integer (time_id) and the specific points in time for the data in a given 10-minute interval are identified by integers (seconds_in_bucket). 
+
+As the target, we have the realized volatility for every combination of stock_id and time_id in the dataset.
+
+One way to approximate the price of a stock at a given instant is a (Weighted Average Price), which we define as:
+
+$$ P = \frac{(\mbox{bid price1})(\mbox{ask size1})+(\mbox{ask price1})(\mbox{bid size1})}{(\mbox{bid size1})+(\mbox{ask size1})} $$
+
+using the highest bid and lowest ask information.
+
+The log return of a stock for consecutive times $t$ and $t'$ is defined as 
+
+```math
+r_{t, t'} = \log \left( \frac{P_{t'}}{P_{t}} \right)
+```
+An approximation to the realized volatility for an interval identified by time_id is
+```math
+RV = \sqrt{\sum r_{t, t'}^2}
+```
+where the sum is taken over all consecutive time instants for a given time_id.
+
+Our base model is a linear regression model for this approximation RV and the actual realized volatility given by the target. We will use the RMSPE metric for the loss for all models.
+
 
 
 ## Neural network models 
