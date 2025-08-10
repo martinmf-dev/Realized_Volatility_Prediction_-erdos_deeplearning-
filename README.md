@@ -72,7 +72,7 @@
   - visualization.py: Code on visualization.
 * ./raw_data: The folder containing the raw data. This folder is ignored by git. 
 
-## Contributors 
+## Equal Contributors 
 
 Martin Molina-Fructuoso (https://github.com/martinmf-dev), Yuan Zhang (https://github.com/YCoeusZ)
 
