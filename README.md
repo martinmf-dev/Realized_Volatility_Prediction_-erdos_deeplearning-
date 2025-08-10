@@ -97,8 +97,10 @@ Practicing pytorch and pandas (with sql like querying logic) is one of the key g
 ## The Data 
 The raw data consists of trade and book data organized by stock id (identifying stocks) and time id (identifying time bucket). Another common identifier is the row id, in the format of “stock id-time id”; as an example: row id “0-5” indicates stock 0 at time bucket 5. And specific points in time for the data in a given 10-minute interval are identified by integers seconds_in_bucket. As the target, we have the future RV for every combination of stock_id and time_id in the dataset. 
 Some key indicators include (formula provided by the kaggle competition host): 
-* The WAP (weighted Average Price) with the highest bid and lowest ask data: 
+* The WAP (weighted Average Price) with the highest bid and lowest ask data:
+ 
 $$ P = \frac{(\mbox{bid price1})(\mbox{ask size1})+(\mbox{ask price1})(\mbox{bid size1})}{(\mbox{bid size1})+(\mbox{ask size1})} $$
+
 * The log return of a stock for time t and later time t’ is: 
 ```math
 r_{t, t'} = \log \left( \frac{P_{t'}}{P_{t}} \right)
