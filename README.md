@@ -135,7 +135,7 @@ RV = \sqrt{\sum r_{t, t'}^2}
 ```
 where the sum is taken over all consecutive time instants for a given time_id.
 
-Our base model is a linear regression model for this approximation RV and the actual realized volatility given by the target. We will use the RMSPE metric for the loss for all models.
+Our base model is a linear regression model for this approximation RV and the actual realized volatility given by the target. We will use the RMSPE metric for the loss for all models. The linear regression model attained a loss of 0.3019  and 0.2678 for training and validation loss respectively.
 
 
 
