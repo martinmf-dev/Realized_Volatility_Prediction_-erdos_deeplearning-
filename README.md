@@ -71,17 +71,10 @@
   - training.py: Training related code, including nn.Module subclass, Dataset subclass, and training loop related code.
   - visualization.py: Code on visualization.
 * ./raw_data: The folder containing the raw data. This folder is ignored by git. 
-## Contributers 
+
+## Contributors 
 
 Martin Molina-Fructuoso (https://github.com/martinmf-dev), Yuan Zhang (https://github.com/YCoeusZ)
-
-## Motivation
-
-Volatility in the stock market captures the amount of fluctuation in the stock market, and, hence, is an important quantitative indicator in the financial market. 
-In this project, we seek to use data on stocks (identified with stock id) through different time id (each indicating a 10 mins time bucket) to predict the Realized Volatility in the immidiate next 10 mins after the time bucket of the time id. 
-This project orignates in kaggle competition (https://www.kaggle.com/competitions/optiver-realized-volatility-prediction). 
-
-Practicing pytorch and pandas (with sql lik querying logic) is one of the key goals of this project. 
 
 ## Necessary packages 
 The following are absolutely necessary python packages needed for this project (extreme common packages like sys, os, numpy, and so on will not be listed): 
@@ -92,6 +85,29 @@ The following are absolutely necessary python packages needed for this project (
 * sklearn, statsmodel, pingouin, scipy (for EDA, and base line model)
 * matplotlib (for visualization)
 * joblib (for parallel computing) 
+
+## Motivation
+
+Volatility in the stock market captures the amount of fluctuation in the stock market, and, hence, is an important quantitative indicator in the financial market. 
+In this project, we seek to use data on stocks to predict the Realized Volatility (RV) in the immediate next 10 mins. The universal loss function used in this project is the RMSPE (Root mean squared percentage error). 
+This project originates in kaggle competition (https://www.kaggle.com/competitions/optiver-realized-volatility-prediction). 
+
+Practicing pytorch and pandas (with sql like querying logic) is one of the key goals of this project. 
+
+## The Data 
+The raw data consists of trade and book data organized by stock id (identifying stocks) and time id (identifying time bucket). Another common identifier is the row id, in the format of “stock id-time id”; as an example: row id “0-5” indicates stock 0 at time bucket 5. And specific points in time for the data in a given 10-minute interval are identified by integers seconds_in_bucket. As the target, we have the future RV for every combination of stock_id and time_id in the dataset. 
+Some key indicators include (formula provided by the kaggle competition host): 
+* The WAP (weighted Average Price) with the highest bid and lowest ask data: 
+$$ P = \frac{(\mbox{bid price1})(\mbox{ask size1})+(\mbox{ask price1})(\mbox{bid size1})}{(\mbox{bid size1})+(\mbox{ask size1})} $$
+* The log return of a stock for time t and later time t’ is: 
+```math
+r_{t, t'} = \log \left( \frac{P_{t'}}{P_{t}} \right)
+```
+* The current RV of a given time id is: 
+```math
+RV = \sqrt{\sum r_{t, t'}^2}
+```
+where the sum is taken over all consecutive time instants for with in a given time_id. 
 
 ## ETL pipeline 
 
@@ -107,6 +123,7 @@ Python pandas with sql style querying logic (e.g. merge, groupby, aggregate, win
 
 To see an example of loading the data for training use, see "./ETLpipeline/Loading_Example.ipynb". The main components include: 
 
+* Creating the train set and the validation set with the latest 10 percent of the time id’s being used for validation. 
 * Using the RVdataset pytorch Dataset subclass to initialize a pytorch Dataset object for pytorch dataloader. See "./data_processing/create_datasets.ipynb" for detailed documention, the source code is stored in "./proj_mod/training.py".
 * Loading the values for training use by feeding the prepared pytorch dataloaders to custom made training loop reg_training_loop_rmspe stored in "./proj_mod/training.py" as parameters. 
 
@@ -114,30 +131,28 @@ Pandas pivot is a key tool in RVdataset.
 
 ## Base line model 
 
-We have level 2 order book for 112 stocks identified by an integer(stock_id) and millions of instants distributed in intervals of 10 minutes. The point in time where a given 10 minute period starts is identified by an integer (time_id) and the specific points in time for the data in a given 10-minute interval are identified by integers (seconds_in_bucket). 
+<!-- We have level 2 order book for 112 stocks identified by an integer(stock_id) and millions of instants distributed in intervals of 10 minutes. The point in time where a given 10 minute period starts is identified by an integer (time_id) and the specific points in time for the data in a given 10-minute interval are identified by integers (seconds_in_bucket).  -->
 
-As the target, we have the realized volatility for every combination of stock_id and time_id in the dataset.
+<!-- As the target, we have the realized volatility for every combination of stock_id and time_id in the dataset. -->
 
-One way to approximate the price of a stock at a given instant is a (Weighted Average Price), which we define as:
+<!-- One way to approximate the price of a stock at a given instant is a (Weighted Average Price), which we define as: -->
 
-$$ P = \frac{(\mbox{bid price1})(\mbox{ask size1})+(\mbox{ask price1})(\mbox{bid size1})}{(\mbox{bid size1})+(\mbox{ask size1})} $$
+<!-- $$ P = \frac{(\mbox{bid price1})(\mbox{ask size1})+(\mbox{ask price1})(\mbox{bid size1})}{(\mbox{bid size1})+(\mbox{ask size1})} $$ -->
 
-using the highest bid and lowest ask information.
+<!-- using the highest bid and lowest ask information. -->
 
-The log return of a stock for consecutive times $t$ and $t'$ is defined as 
+<!-- The log return of a stock for consecutive times $t$ and $t'$ is defined as  -->
 
-```math
+<!-- ```math
 r_{t, t'} = \log \left( \frac{P_{t'}}{P_{t}} \right)
-```
-An approximation to the realized volatility for an interval identified by time_id is
-```math
+``` -->
+<!-- An approximation to the realized volatility for an interval identified by time_id is -->
+<!-- ```math
 RV = \sqrt{\sum r_{t, t'}^2}
-```
-where the sum is taken over all consecutive time instants for a given time_id.
+``` -->
+<!-- where the sum is taken over all consecutive time instants for a given time_id. -->
 
-Our base model is a linear regression model for this approximation RV and the actual realized volatility given by the target. We will use the RMSPE metric for the loss for all models. The linear regression model attained a loss of 0.3019  and 0.2678 for training and validation loss respectively.
-
-
+Our base line model is a linear regression model with the parameter of current RV, and the future RV of the immediate next 10 mins given as the target. The linear regression model attained a loss of 0.3019 and 0.2678 for training and validation loss respectively.
 
 ## Neural network models 
 The following is a summary of the models in their default settings, many of the models, in reality, offers much more flexibility to be altered. 
@@ -258,7 +273,7 @@ We have a sub model produce a vector pre-adjuster which we will use as Key and V
 
 <img width="551" height="694" alt="image" src="https://github.com/user-attachments/assets/55a87e7a-6459-41c5-bbf5-214b9e92cb6e" />
 
-Best loss: (0.2249) Using base model: (fill in) 
+Best loss: (0.2249) Using base model: GRU 
 
 Source code class id_learned_embedding_attend_rnn at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
 
@@ -267,7 +282,7 @@ We constructed a model that has the capability to adjust the timeseries base mod
 
 <img width="711" height="619" alt="image" src="https://github.com/user-attachments/assets/47ea76ca-d15b-4542-b3c0-6acaad9f19ad" />
 
-Best loss: (fill in) Using base model: (fill in) 
+Best loss: 0.2153 Using base model: GRU 
 
 Source code class multi_adj_by_attd at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Parameter_embedding.ipynb". 
 
@@ -276,13 +291,13 @@ We fine-tuned two encoder-decoder modles, with and without a stock identifier em
 
 
 ## Future 
-As of August 10th of 2025, this project is 3 month in age. Both contributors have honed their skills and understanding in data transformation and machine learning with pytorch. 
+As of August 10th of 2025, this project is 3 months in age. Both contributors have honed their skills and understanding in data transformation and machine learning with pytorch. 
 Both contributors feel that they are just getting started and there are many things to do to keep improving the models: 
 * As of now, most models uses feed forward layers mostly composed of custom made encoder and decoders, or nn.Linear. The contributors want to investigate further into using certain alternatives including convolutions, especially for the data with larger dimensions.
-* As of now, the model that is adjusted with all of row id, stock id, time id, and emb id is over training very fast (Although, it has very good validation loss). This indicates bad regularization, and possibly noisy input parameters, the contributers want to investigate into implimenting methods to change this: increasing dropout, changing weight decay of optimizer (kind of an analog of ridge (L2) regression for our context), methods to reduce input parameters (like lasso (L1) regression in the context of linear regression), and so on. 
-* Adjusting the teacher forcing model further: Currently, the teacher forcing model uses the encoder output as both the encoder memory and the ground target (the "teacher"), the contributers want to investigate into cutting the input timeseries in the middle, and use the first as "true input" and the second half as the "teacher".
+* As of now, the model that is adjusted with all of row id, stock id, time id, and emb id is over training very fast (Although, it has very good validation loss). This indicates bad regularization, and possibly noisy input parameters, the contributors want to investigate into implimenting methods to change this: increasing dropout, changing weight decay of optimizer (kind of an analog of ridge (L2) regression for our context), methods to reduce input parameters (like lasso (L1) regression in the context of linear regression), and so on. 
+* Adjusting the teacher forcing model further: Currently, the teacher forcing model uses the encoder output as both the encoder memory and the ground target (the "teacher"), the contributors want to investigate into cutting the input timeseries in the middle, and use the first as "true input" and the second half as the "teacher".
 * Investigate further into fine tuning methods.
-* Find improved methods for processing the data: pandas is a great tool, but the contributers have noticed its speed issue when haddling massive amount of data, even when running under parallel. So contributors want to investigate further into otherwise methods to improve this, for instance, using tools that are designed for big data (for instance, pyspark, and so on).
+* Find improved methods for processing the data: pandas is a great tool, but the contributors have noticed its speed issue when haddling massive amount of data, even when running under parallel. So contributors want to investigate further into otherwise methods to improve this, for instance, using tools that are designed for big data (for instance, pyspark, and so on).
 * Currently all the adjustment models are training the timeseries base models as "submodels", we also would like to investigate into using a pretrained base model output as a parameter to be adjusted on. 
 
 ## Citations 
