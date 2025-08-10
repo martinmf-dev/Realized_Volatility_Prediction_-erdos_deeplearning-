@@ -258,12 +258,12 @@ We have a sub model produce a vector pre-adjuster which we will use as Key and V
 
 <img width="551" height="694" alt="image" src="https://github.com/user-attachments/assets/55a87e7a-6459-41c5-bbf5-214b9e92cb6e" />
 
-Best loss: (fill in) Using base model: (fill in) 
+Best loss: (0.2249) Using base model: (fill in) 
 
 Source code class id_learned_embedding_attend_rnn at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
 
 #### Adjustment with row id, stock id, and time id 
-We constructed a model that has capibility to adjust the timeseries base model output with any subset of row id, stock id, time id, and emb id: 
+We constructed a model that has the capability to adjust the timeseries base model output with any subset of row id, stock id, time id, and emb id: 
 
 <img width="711" height="619" alt="image" src="https://github.com/user-attachments/assets/47ea76ca-d15b-4542-b3c0-6acaad9f19ad" />
 
