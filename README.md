@@ -193,7 +193,7 @@ We first discuss the rnn based model for timeseries input:
 
 <img width="397" height="530" alt="image" src="https://github.com/user-attachments/assets/340d3ad1-4590-43b9-a228-882fd16f3ede" />
 
-Best loss for rnn: (0.2255); Best loss for lstm: (0.2234); Best loss for gru: (0.2230)
+Best loss for rnn: (0.2348); Best loss for lstm: (0.2301)
 
 Source code RV_RNN_conv at "./proj_mod/training.py". See detailed decumentation at "./NNetwork/RNN_with_frozen_conv.ipynb". 
 
@@ -233,13 +233,12 @@ The only difference between emb id and stock id is that embd id is a list of int
 
 * Adjustment by time series categorical embeddings
 
-We added the embedding of emb_id as additional time series to be passed to variants of the RNN model: 
+We added the embedding of emb_id to a dense vector as additional time series to be passed to variants of the RNN model (also known as time series categorical embeddings). The hidden layer has three possible initializations: zeros, random, and learned 
 
 <img width="502" height="409" alt="image" src="https://github.com/user-attachments/assets/ba193a74-bfc9-427e-ae7b-8fb2d37c345f" />
 
-Best loss: (0.2233)
+Best loss for rnn: (0.2253)  Best loss for LSTM: (0.2233) Best loss for GRU: (0.2233)
 
-when using LSTM.
 
 See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
 
