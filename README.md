@@ -185,7 +185,7 @@ Source code ts_encoder at "./proj_mod/training.py".
 
 * **Decoder**
 
-A custom decoder layer, it offers options for masking in the first self attention layer, and (or) performing shifting right on the groud target: 
+A custom decoder layer, it offers options for masking in the first self attention layer, and (or) performing shifting right on the groud target (shifting will be performed at beginning, before the first layer): 
 
 <img width="480" height="615" alt="image" src="https://github.com/user-attachments/assets/a71ef29d-9ea5-4e2c-bf07-4b20f3767320" />
 
