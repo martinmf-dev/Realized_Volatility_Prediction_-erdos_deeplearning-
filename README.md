@@ -113,7 +113,7 @@ r_{t, t'} = \log \left( \frac{P_{t'}}{P_{t}} \right)
 ```math
 RV = \sqrt{\sum r_{t, t'}^2}
 ```
-where the sum is taken over all consecutive time instants for with in a given time_id. 
+where the sum is taken over all consecutive time instants within a given time_id. 
 
 ## ETL pipeline 
 
