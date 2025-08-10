@@ -72,7 +72,7 @@
   - visualization.py: Code on visualization.
 * ./raw_data: The folder containing the raw data. This folder is ignored by git. 
 
-## Contributors 
+## Equal Contributors 
 
 Martin Molina-Fructuoso (https://github.com/martinmf-dev), Yuan Zhang (https://github.com/YCoeusZ)
 
@@ -97,8 +97,10 @@ Practicing pytorch and pandas (with sql like querying logic) is one of the key g
 ## The Data 
 The raw data consists of trade and book data organized by stock id (identifying stocks) and time id (identifying time bucket). Another common identifier is the row id, in the format of “stock id-time id”; as an example: row id “0-5” indicates stock 0 at time bucket 5. And specific points in time for the data in a given 10-minute interval are identified by integers seconds_in_bucket. As the target, we have the future RV for every combination of stock_id and time_id in the dataset. 
 Some key indicators include (formula provided by the kaggle competition host): 
-* The WAP (weighted Average Price) with the highest bid and lowest ask data: 
+* The WAP (weighted Average Price) with the highest bid and lowest ask data:
+ 
 $$ P = \frac{(\mbox{bid price1})(\mbox{ask size1})+(\mbox{ask price1})(\mbox{bid size1})}{(\mbox{bid size1})+(\mbox{ask size1})} $$
+
 * The log return of a stock for time t and later time t’ is: 
 ```math
 r_{t, t'} = \log \left( \frac{P_{t'}}{P_{t}} \right)
@@ -183,7 +185,7 @@ Source code ts_encoder at "./proj_mod/training.py".
 
 * **Decoder**
 
-A custom decoder layer: 
+A custom decoder layer, it offers options for masking in the first self attention layer, and (or) performing shifting right on the groud target (shifting will be performed at beginning, before the first layer): 
 
 <img width="480" height="615" alt="image" src="https://github.com/user-attachments/assets/a71ef29d-9ea5-4e2c-bf07-4b20f3767320" />
 
@@ -208,7 +210,7 @@ We first discuss the rnn based model for timeseries input:
 
 <img width="397" height="530" alt="image" src="https://github.com/user-attachments/assets/340d3ad1-4590-43b9-a228-882fd16f3ede" />
 
-Best loss for rnn: (0.2348); Best loss for lstm: (0.2301)
+Best loss for rnn: (0.2348); Best loss for lstm: (0.2301); Best loss for gru: (0.2308)
 
 Source code RV_RNN_conv at "./proj_mod/training.py". See detailed decumentation at "./NNetwork/RNN_with_frozen_conv.ipynb". 
 
@@ -227,7 +229,7 @@ Source code encoder_ensemble at "./proj_mod/training.py". See detailed documenta
 
 * **Encoder decoder teacher forcing transformer**
 
-The following is a transformer with both encoder and decoder, we will use the self attention encoder ouput of the input timesereis as the ground target "teacher" (since we do not have a connecting timeseries): 
+The following is a transformer with both encoder and decoder, we will use the self attention encoder ouput of the input timesereis as the ground target "teacher" with no shifting and casual masking (since we do not have a connecting timeseries): 
 
 <img width="234" height="562" alt="image" src="https://github.com/user-attachments/assets/2c38d43d-8cae-4466-8daa-129201fe84c5" />
 
@@ -263,7 +265,7 @@ We have a sub network that works on the embedded emb id to create a scalar adjus
 
 <img width="502" height="328" alt="image" src="https://github.com/user-attachments/assets/570ab36c-4bc8-4f27-82a1-2c1a31ffed7c" />
 
-Best loss: (0.2228)
+Best loss: (0.2228) Using base model: GRU 
 
 Source code id_learned_embedding_adj_rnn_mtpl at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
 
@@ -277,7 +279,7 @@ Best loss: (0.2249) Using base model: GRU
 
 Source code class id_learned_embedding_attend_rnn at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
 
-#### Adjustment with row id, stock id, and time id 
+#### Adjustment with any subset of row id, stock id, time id, and emb id 
 We constructed a model that has the capability to adjust the timeseries base model output with any subset of row id, stock id, time id, and emb id: 
 
 <img width="711" height="619" alt="image" src="https://github.com/user-attachments/assets/47ea76ca-d15b-4542-b3c0-6acaad9f19ad" />
