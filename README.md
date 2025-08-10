@@ -113,7 +113,10 @@ To see an example of loading the data for training use, see "./ETLpipeline/Loadi
 Pandas pivot is a key tool in RVdataset. 
 
 ## Base line model 
-(fill in)
+
+We have level 2 order book for 112 stocks identified by an integer(stock_id) and millions of instants distributed in intervals of 10 minutes. The point in time where a given 10 minute period starts is identified by an integer (time_id) and the specific points in time for the data in a given 10-minute interval are identified by integers (seconds_in_bucket). One way to approximate the price of a stock at a given instant is a (Weighted Average Price), which we define as:
+WAP = ((bid_price1)*(ask_size1)+(ask_price1)*(bid_size1))/((bid_size1)+(ask_size1))
+
 
 ## Neural network models 
 The following is a summary of the models in their default settings, many of the models, in reality, offers much more flexibility to be altered. 
