@@ -1,6 +1,6 @@
 # Realized Volatility Prediction 
 
-## Folder and file organization (fill in)
+## Folder and file organization 
 <pre>
   .
   ├── data_collecting 
@@ -20,6 +20,8 @@
   ├── ETLpipeline
       ├── Default_Extract_Transform.py
       └── Loading_Example.ipynb 
+  ├── Fine_Tuned_Models
+      └── Encoder_decoder.ipynb
   ├── model_data 
   ├── NNetwork
       ├── Decoder_transformer.ipynb
@@ -40,7 +42,7 @@
   └── raw_data 
 </pre>
 
-## Folder and file explanations (fill in)
+## Folder and file explanations 
 
 * ./data_collecting: Contains instruction and code for downloading raw data from kaggle.
 * ./data_processing:
@@ -55,6 +57,8 @@
 * ./ETLpipeline:
   - Default_Extract_Transform.py: The Default extract and transform pipeline that collect, extract, and transform the data and save the processed data in "./processed_data".
   - Loading_Example.ipynb: An example of using pytorch Dataset subclass (RVdataset) with pytorch dataloader for data loading.
+* ./Fine_Tuned_Models: Contains fine tunning notebooks for models.
+  - Encoder_decoder.ipynb: The fine tuning note book for encoder decoder transformer. 
 * ./model_data: The saves model weights.
 * ./NNetwork: All Neural Network model source code are kept in "./proj_mod/training.py". 
   - Decoder_transformer.ipynb: Documentation on Transformer models with both encoder and decoder layers.
