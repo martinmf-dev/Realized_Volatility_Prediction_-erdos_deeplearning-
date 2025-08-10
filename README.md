@@ -248,7 +248,7 @@ We have a sub network that works on the embedded emb id to create a scalar adjus
 
 <img width="502" height="328" alt="image" src="https://github.com/user-attachments/assets/570ab36c-4bc8-4f27-82a1-2c1a31ffed7c" />
 
-Best loss: (fill in)
+Best loss: (0.2228)
 
 Source code id_learned_embedding_adj_rnn_mtpl at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
 
