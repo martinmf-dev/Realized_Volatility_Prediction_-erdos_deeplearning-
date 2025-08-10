@@ -246,7 +246,8 @@ Best loss: (fill in) Using base model: (fill in)
 Source code class multi_adj_by_attd at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Parameter_embedding.ipynb". 
 
 ## Fine tuning 
-(fill in)
+We fine-tuned two encoder-decoder modles, with and without a stock identifier embedding. The optimization strategy and heuristically defined search space, both critical to making Optuna work effectviely, were developted using domain knowledge and targeted experimentation. We used the Optuna library to methodically explore the hyperparameter space combiend with custom early termination of undeperforming trials. In addition, we designed reusable functions and a modular structure so the same optimization pipeline can be applied to any custom model, ensuring that the optimization strategy is transparent, models are self-contained, and reproducibility of models for inference is guaranteed.
+
 
 ## Future 
 As of August 10th of 2025, this project is 3 month in age. Both contributors have honed their skills and understanding in data transformation and machine learning with pytorch. 
