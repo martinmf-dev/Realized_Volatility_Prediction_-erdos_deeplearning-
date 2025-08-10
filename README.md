@@ -206,7 +206,7 @@ The first mode is an encoder only transformer:
 
 <img width="256" height="416" alt="image" src="https://github.com/user-attachments/assets/2e0d63ea-52fb-4840-9433-4faf34e9482a" />
 
-Best loss: (fill in)
+Best loss: (0.2332)
 
 Source code encoder_ensemble at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Transformer_with_frozen_conv_1.ipynb". 
 
@@ -216,9 +216,10 @@ The following is a transformer with both encoder and decoder, we will use the se
 
 <img width="234" height="562" alt="image" src="https://github.com/user-attachments/assets/2c38d43d-8cae-4466-8daa-129201fe84c5" />
 
-Best loss: (fill in)
+Best loss: (0.2296)
 
-Source code encoder_decoder_teacherforcing at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Decoder_transformer.ipynb", where an explanation on casual masking is detailed as well. 
+Source code encoder_decoder_teacherforcing at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Decoder_transformer.ipynb", where an explanation on casual masking is detailed as well.
+The optimization of hyperparameters and training of the model that produced this loss can be found in "./FineTunedModels/Encoder_decoder.ipynb"
 
 ---
 
@@ -230,13 +231,15 @@ As a proof of concept, we first limited to only adjusting with the stock id with
 To acheive discrete learned embedding efficiently, we first created emb id (i.e. embedding id) to replace the stock id. 
 The only difference between emb id and stock id is that embd id is a list of integer with no "gape" while stock id does jump over some integers. 
 
-* Adjustment by pre-appending
+* Adjustment by time series categorical embeddings
 
-We simply pre-appended the embedded emb id infront of the timeseries: 
+We added the embedding of emb_id as additional time series to be passed to variants of the RNN model: 
 
 <img width="502" height="409" alt="image" src="https://github.com/user-attachments/assets/ba193a74-bfc9-427e-ae7b-8fb2d37c345f" />
 
-Best loss: (fill in)
+Best loss: (0.2233)
+
+when using LSTM.
 
 See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
 
