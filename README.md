@@ -279,7 +279,7 @@ Best loss: (0.2249) Using base model: GRU
 
 Source code class id_learned_embedding_attend_rnn at "./proj_mod/training.py". See detailed documentation at "./NNetwork/Learned_emb_RNN.ipynb". 
 
-#### Adjustment with row id, stock id, and time id 
+#### Adjustment with any subset of row id, stock id, time id, and emb id 
 We constructed a model that has the capability to adjust the timeseries base model output with any subset of row id, stock id, time id, and emb id: 
 
 <img width="711" height="619" alt="image" src="https://github.com/user-attachments/assets/47ea76ca-d15b-4542-b3c0-6acaad9f19ad" />
