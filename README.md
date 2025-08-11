@@ -13,6 +13,7 @@
       ├── first_look.ipynb 
       ├── missing_time_points.ipynb 
       └── understanding_time_id_recovery.ipynb 
+  ├── deliverables 
   ├── dotenv_env
   ├── EDA
       ├── EDA_martin.ipynb
@@ -52,6 +53,7 @@
   - first_look.ipynb: A first look at the raw data.
   - missing_time_points.ipynb: Documentation on which stocks are missing which time id's.
   - understanding_time_id_recovery.ipynb: Documentation of recovering time id ordering.
+* ./deliverable: Contains a video presentation, a pdf executive summary, and a pdf powerpoint. 
 * ./dotenv_env: Contains env files for be loaded with dotenv, content of this folder is ignored by git.
 * ./EDA: Decomented EDA experiments.
 * ./ETLpipeline:
