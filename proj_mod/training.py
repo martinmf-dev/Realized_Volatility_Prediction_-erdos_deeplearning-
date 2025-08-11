@@ -855,6 +855,8 @@ def ts_shift_right(ts,bos_v):
     :return: The desired shifted timeseries. 
     """
     B,_,D=ts.shape
+    if bos_v.device!=ts.device: 
+        bos_v=bos_v.to(device=ts.device)
     if bos_v.shape[-1]!=D: 
         raise ValueError("bos_v dimension is not time step dimension.") 
     v=bos_v.unsqueeze(0).unsqueeze(0).expand(B,1,D)
@@ -902,7 +904,7 @@ class ts_decoder(nn.Module):
         :param shift_gt_right: Defaulted to False. Decides if one shifts the ground target to the right before feeding it into the first self attention layer. 
         """
         if shift_gt_right:
-            bos_v=torch.zeros(ground_target.shape[-1]) 
+            bos_v=torch.zeros(ground_target.shape[-1]).to(device=ground_target.device) 
             ground_target=ts_shift_right(ts=ground_target,bos_v=bos_v)
         self_attn,_=self.decoder_self_attn(ground_target,ground_target,ground_target,attn_mask=ground_target_mask) 
         if self.keep_mag: 
