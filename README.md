@@ -165,7 +165,7 @@ RV = \sqrt{\sum r_{t, t'}^2}
 Our base line model is a linear regression model with the parameter of current RV, and the future RV of the immediate next 10 mins given as the target. The linear regression model attained a loss of 0.3019 and 0.2678 for training and validation loss respectively.
 
 ## The training loop 
-Our custom training loop comes with early stopping option which reloads the best weight dictionary with the best validation loss. 
+Our custom training loop comes with an early stopping option which reloads the best weight dictionary with the best validation loss. 
 In practice, we would apply the model with the best weight dictionary on the test set for prediction. 
 
 It should be noted that this gives a slight unfair advantage to the neural network models against the baseline model when comparing them with validation loss: The neural network model is tuned with early stopping decided by the validation loss, while the baseline model is fully segregated from the validation set. 
@@ -173,7 +173,7 @@ It should be noted that this gives a slight unfair advantage to the neural netwo
 ## Neural network models 
 The following is a summary of the models in their default settings, many of the models, in reality, offers much more flexibility to be altered. 
 
-In should be noted, however, we still could not fully submit the models for testing on kaggle (who reserves the test set), so all the "loss" provided in below are the "best validation loss". 
+It should be noted, however, we still could not fully submit the models for testing on kaggle (who reserves the test set), so all the "loss" provided in below are the "best validation loss". 
 
 ---
 ### Frozen convolution layer for "derivative of timeseries" feature creation 
