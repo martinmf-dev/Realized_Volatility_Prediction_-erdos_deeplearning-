@@ -117,7 +117,7 @@ RV = \sqrt{\sum r_{t, t'}^2}
 ```
 where the sum is taken over all consecutive time instants within a given time_id. 
 
-It should be noted that the test set is reserved by the competition host, and we do not have access to it. 
+It should be noted that the pre-segregated test set is reserved by the competition host, and we do not have direct access to it. 
 
 ## ETL pipeline 
 
@@ -165,10 +165,11 @@ RV = \sqrt{\sum r_{t, t'}^2}
 Our base line model is a linear regression model with the parameter of current RV, and the future RV of the immediate next 10 mins given as the target. The linear regression model attained a loss of 0.3019 and 0.2678 for training and validation loss respectively.
 
 ## The training loop 
-Our custom training loop comes with an early stopping option which reloads the best weight dictionary with the best validation loss. 
-In practice, we would apply the model with the best weight dictionary on the test set for prediction. 
+Our custom training loop comes with schduler option that updates training rate according to validation loss plateau, and an early stopping option which reloads the best weight dictionary with the best validation loss. 
 
-It should be noted that this gives a slight unfair advantage to the neural network models against the baseline model when comparing them with validation loss: The neural network model is tuned with early stopping decided by the validation loss, while the baseline model is fully segregated from the validation set. 
+In practice, we would apply the model with the best weight dictionary received from the training loop and fine tuning on the pre-segregated test set for a truely fair model comparison. 
+However, we are experiencing issue with submitting the models to kaggle to access the test set (reserved by kaggle and not made available to us), so we are comparing models with their best validation loss for now. 
+It should be noted that this gives a slight unfair advantage to the neural network models against the baseline model when comparing them: The neural network model is tuned with scheduler and early stopping decided by the validation loss, while the baseline model is fully segregated from the validation set. 
 
 ## Neural network models 
 The following is a summary of the models in their default settings, many of the models, in reality, offers much more flexibility to be altered. 
