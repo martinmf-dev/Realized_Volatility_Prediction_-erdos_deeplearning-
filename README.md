@@ -117,7 +117,7 @@ RV = \sqrt{\sum r_{t, t'}^2}
 ```
 where the sum is taken over all consecutive time instants within a given time_id. 
 
-It should be noted that the pre-segregated test set is reserved by the competition host, and we do not have direct access to it. 
+It should be noted that the pre-segregated test set is reserved by the competition host, and we do not have direct access to it. The test set can only be accessed by submitting a model to kaggle. 
 
 ## ETL pipeline 
 
